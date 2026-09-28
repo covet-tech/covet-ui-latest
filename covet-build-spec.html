@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Covet MVP · Build Spec</title>
+<style>
+  :root { --cherry: #e02d56; --ink: #29192b; --muted: #6b5560; --line: #eadfe3; --bg: #fdf8f6; }
+  * { box-sizing: border-box; margin: 0; }
+  body { font: 15px/1.6 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: var(--ink); background: var(--bg); padding: 48px 20px; }
+  .page { max-width: 760px; margin: 0 auto; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 48px 52px; }
+  h1 { font-family: Georgia, serif; font-size: 30px; font-weight: 500; }
+  .tag { color: var(--muted); font-size: 13px; margin: 4px 0 20px; }
+  .rule { height: 3px; background: var(--cherry); border-radius: 2px; margin-bottom: 26px; }
+  h2 { font-size: 15px; color: var(--cherry); margin: 26px 0 8px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+  p { margin-bottom: 12px; }
+  ul { margin: 0 0 12px 20px; }
+  li { margin-bottom: 5px; }
+  .callout { background: #fdf1f4; border: 1px solid #f3cdd8; border-radius: 12px; padding: 18px 22px; margin: 14px 0 18px; }
+  .quiet { color: var(--muted); font-size: 13px; }
+  strong { color: var(--ink); }
+  code { background: #f6eef1; border-radius: 5px; padding: 1px 6px; font-size: 13px; }
+  @media (max-width: 640px) { .page { padding: 30px 22px; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Covet, the build spec</h1>
+  <p class="tag">Server rules and exact math · September 2026 · goes with the prototype and the scope page</p>
+  <div class="rule"></div>
+
+  <p>The prototype demonstrates every flow but enforces nothing: it runs on localStorage so you can click all of it. This page is the list of what the server must enforce, with the exact numbers. Where this page and the prototype describe the same thing, the prototype is the reference for UX and this page is the reference for rules.</p>
+
+  <h2>Trust boundary</h2>
+  <p>Everything below is client-side in the demo and must be server-authoritative in production:</p>
+  <ul>
+    <li>Balances and every credit class, pending opens, entitlements</li>
+    <li>Odds rolls: commit and reveal, server rolls, client seed mixes in</li>
+    <li>Daily claim limits (one per day), the 3-free-opens cap, the 1-free-ship cap</li>
+    <li>Buyback offers, computed at sale time from live cost data</li>
+    <li>Creator attribution and the earnings ledger</li>
+    <li>All admin edits (boxes, items, prices, themes, hero) in one config store with admin-only writes</li>
+    <li>Age and region gate: self-attestation in the UI, enforced against shipping and billing address server-side (US plus Puerto Rico, 5 blocked states per the terms page)</li>
+  </ul>
+
+  <h2>Stack and shape</h2>
+  <ul>
+    <li>Next.js (React) + TypeScript + Node + PostgreSQL, managed hosting, Resend for email, one background worker for nightly jobs</li>
+    <li>One deployable app, one database. No microservices, no document DB for the ledger: balances and atomic stock-with-roll are relational transaction problems</li>
+    <li>API-first: every customer action goes through endpoints a future mobile app can reuse</li>
+    <li>Money stored as integer cents everywhere. Customer-facing prices are whole dollars</li>
+    <li>The prototype's CSS and animations port as-is</li>
+  </ul>
+
+  <h2>Admin security</h2>
+  <p>The prototype's admin page is an open URL; production admin gets its own auth (email plus 2FA) and an audit log of every admin action: price edits, buyback dial changes, refunds, bans, toggle flips.</p>
+
+  <h2>Checkout and payments</h2>
+  <ul>
+    <li>Card processing through the processor I designate: hosted checkout plus webhooks. Launch is card plus balance only</li>
+    <li>Standalone top-ups: $10 minimum, presets $10/$25/$50/$100, enforced client and server side</li>
+    <li>Box checkout is direct: insufficient balance offers pay-the-difference by card in one tap (a purchase, so the $10 minimum does not apply). Any card payment there counts as a qualifying purchase for the free-box gates</li>
+    <li><strong>Payment success creates a paid-unopened entitlement. The roll happens at the customer's tap, never at webhook time</strong>, so a payment completed in another tab can never miss its reveal. After payment, a confirm step offers open now or save for later</li>
+    <li>Saved sealed boxes sit on the shelf with two options: open (consumes the entitlement, no second charge) or give back sealed at 90% of the paid price in boxes-only locked credit. A paid-box-waiting reminder email goes out at 24 hours unopened</li>
+    <li>3D Secure on deposits, rule-triggered (new account, large amount, mismatch signals), via the processor</li>
+    <li>Refund math: refundable = deposits minus spends minus prior refunds, capped by current balance. Refunds go to the original payment method only</li>
+    <li>Sales tax collects at box purchase based on shipping state; wire a tax service (Stripe Tax or TaxJar class). Final tax policy comes from my accountant; the integration is in scope</li>
+  </ul>
+
+  <h2>The ledger: credit classes and exits</h2>
+  <div class="callout">
+    <p style="margin-bottom:6px"><strong>Deposits</strong> do exactly two things: open boxes, or refund to the original payment method. They never expire and they never trade for gift cards.</p>
+    <p style="margin-bottom:6px"><strong>Earned credit</strong> (item buybacks, creator earnings) spends on boxes and, if the gift card module ships, is the only credit class that can trade for cards.</p>
+    <p style="margin-bottom:0"><strong>Locked credit</strong> (free and promotional pulls, and the 90% sealed give-back) spends on boxes only until it has cycled through a purchase.</p>
+  </div>
+  <ul>
+    <li>Every ledger row carries its source class; spend paths check class, not just total</li>
+    <li>Buyback and promotional credit expires after 6 months of account inactivity; any open, purchase, or deposit resets the clock, with a reminder email before expiry</li>
+    <li>Balances are personal and non-transferable between accounts</li>
+  </ul>
+
+  <h2>Box math (margin invariants, build exactly as written)</h2>
+  <ul>
+    <li><strong>Custom (wishlist) box price = max($10, 0.9 × valueEV, 1.25 × costEV + $6 shipping reserve)</strong>, where valueEV and costEV are the odds-weighted expected shown value and expected supplier cost of the box as configured</li>
+    <li><strong>Always round up to the next whole dollar, even one cent over: $84.01 prices at $85.</strong> Never nearest, never truncate. The prototype already does this (Math.ceil in js/data.js); do not normalize it to standard rounding</li>
+    <li><strong>Single-item odds capped at 85%.</strong> The cap and the cost floor are one paired invariant; neither moves without the other, and neither is an engineering decision</li>
+    <li>The builder re-prices live as odds sliders move, but the server recomputes the price from the stored odds at purchase time and charges its own number. Never trust a client-computed price</li>
+    <li>Buyback offers recompute server-side at the moment of sale from live cost data; shelf offers float (the buyback policy page already says so). Offer percentages are admin dials, not constants</li>
+    <li>Stock: a roll that lands a stock-tracked item decrements atomically in the same transaction as the roll. A sealed give-back restores the unit and releases any hold it caused, never manual pauses</li>
+    <li>Stock-out: a premade box containing an item at stock 0 auto-pauses entirely and appears in the admin low stock queue until the item is restocked or swapped out. If the item sits in a saved customer wishlist box, that box's open button grays out (with a friendly note) until restock, or until the customer edits the item out; never a silent odds change on a box the customer already configured</li>
+    <li>Admin stock floor (Settings, in the prototype): items with stock under the set threshold but above zero are held out of premade-box rolls the same way paused items are, weight spread pro-rata, and flagged "held from rolls" in the low stock panel. Zero threshold means off</li>
+    <li>Nightly job re-checks every live box against a 20% margin floor as supplier costs drift; below floor auto-pauses the box and notifies admin. Supplier repricing is one-click-apply from an admin diff view, never silent</li>
+    <li>Catalog: Brands Gateway and FragranceX API sync (price, stock, quantity) with one-time SKU mapping, plus admin manual custom items. Current prototype values are provisional until the feeds land</li>
+  </ul>
+
+  <h2>Fairness</h2>
+  <ul>
+    <li>Commit and reveal: daily server seed obtained and signed via the random.org API; publish the SHA-256 hash and signature before use, reveal retired seeds after rotation</li>
+    <li>Roll = first 8 hex of SHA-256(serverSeed:clientSeed:nonce) mapped to [0,100) against the cumulative odds table. Nonce increments per account per seed. Customers can change their client seed any time</li>
+    <li>Every pull stores an odds-table snapshot at roll time</li>
+    <li><strong>Every money or roll event gets a public id (CVT-XXXXXX)</strong> shown on the shelf, reveals, and emails, keyed server-side to the full round record: seeds, nonce, odds band, box snapshot, timestamps. Admin lookup by id resolves to user, round, and item. The same id goes on receipts and chargeback evidence packs</li>
+    <li>The prototype's fairness page documents the exact scheme and ships a working verifier: <strong>the production implementation must pass that verifier unchanged</strong>. Treat it as an acceptance test</li>
+    <li>The weekly giveaway draws through a random.org signed draw; 5 free entries daily, 1 entry per dollar spent, follow bonus, per the giveaway rules page</li>
+  </ul>
+
+  <h2>Identity and fraud</h2>
+  <ul>
+    <li>KYC via Didit (REST plus webhooks). <strong>Once per account, at the first of: free daily box claim, first shipment, or first gift card trade.</strong> Never at signup, never at purchase</li>
+    <li>Stolen-card risk is handled by step-up holds in the fulfillment queue, not blanket verification: e.g. ship-to differs from billing and the order is over $250, multiple ship addresses on one account, or a first-day account pulling high value. Held orders get an admin flag with optional per-order identity verification before release</li>
+    <li>Chargeback evidence pack: one-click export per order (tracking, signature, KYC timestamp, terms acceptance)</li>
+    <li>Entry-farming controls: device fingerprinting on free-box claims, account-creation velocity limits per IP and device, disposable-email blocking at signup</li>
+  </ul>
+
+  <h2>Gift card module (optional line item)</h2>
+  <p>If included, it ships with its controls, which are part of the feature and not hardening to defer:</p>
+  <ul>
+    <li>Trades draw on earned credit only, per the ledger section. Closed-loop retail brands through a provider API; delivery by text or email, customer's choice</li>
+    <li>Credit must be at least 7 days old, or its funding deposit fully settled, before it can fund a trade</li>
+    <li>First trade capped, weekly per-account cap, KYC-name mismatch with the card on file flags the account</li>
+    <li>First-ever trade and every flagged trade goes to the manual review queue (the admin toggle in the prototype); delivery fires only after approval</li>
+    <li>A chargeback freezes the account, voids pending trades, and cancels unclaimed provider cards</li>
+  </ul>
+
+  <h2>Creator program</h2>
+  <ul>
+    <li>Codes apply at signup; attribution window and the earnings ledger are server-side</li>
+    <li>Earnings credit automatically to the creator's balance. No claim approvals, no in-product tax forms in the MVP: paperwork is handled manually at my volume</li>
+    <li>Admin: search creators, view performance ranked by code, edit a code, suspend</li>
+  </ul>
+
+  <h2>Transactional email (Resend)</h2>
+  <p>Receipt · deposit confirmation · paid-box-waiting reminder at 24h · ship confirmation with tracking · delivery confirmation · buyback confirmation · refund processed · KYC follow-up · password reset with 30-minute expiry (already promised in the UI) · giveaway winner plus 7-day reminders · stock-out choice email with 5-day auto-credit timer · credit-expiry reminder · streak-lapse nudge (marketing, needs unsubscribe). Signup requires email verification; giveaway integrity and creator attribution both depend on real addresses.</p>
+
+  <h2>Ops plumbing</h2>
+  <ul>
+    <li>Maintenance mode as a server-side flag: storefront routes serve the be-right-back takeover, admin stays up, reveals already in motion finish first</li>
+    <li>Unknown routes serve the branded 404 page with a real 404 status</li>
+    <li>Every admin Settings toggle in the prototype must actually gate the customer surface it names, exactly as the demo shows</li>
+    <li>Support widget (Crisp class) wired to the support address, with admin user lookup linked from tickets</li>
+    <li>Analytics day one: TikTok pixel plus a basic event stream (signup, deposit, open, buyback, share) and per-creator-code funnel reporting</li>
+  </ul>
+
+  <h2>Acceptance</h2>
+  <p>Done means: every flow that is clickable in the prototype exists and behaves the same; the fairness verifier passes against production rolls; every number in the box math section is reproduced to the cent; every admin toggle visibly changes the storefront; and nothing listed under the trust boundary can be altered from a browser.</p>
+
+  <p class="quiet" style="margin-top:26px">Questions on anything here come to me directly; I answer same day.</p>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Covet MVP · Scope</title>
+<style>
+  :root { --cherry: #e02d56; --ink: #29192b; --muted: #6b5560; --line: #eadfe3; --bg: #fdf8f6; }
+  * { box-sizing: border-box; margin: 0; }
+  body { font: 15px/1.6 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: var(--ink); background: var(--bg); padding: 48px 20px; }
+  .page { max-width: 760px; margin: 0 auto; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 48px 52px; }
+  h1 { font-family: Georgia, serif; font-size: 30px; font-weight: 500; }
+  .tag { color: var(--muted); font-size: 13px; margin: 4px 0 20px; }
+  .rule { height: 3px; background: var(--cherry); border-radius: 2px; margin-bottom: 26px; }
+  h2 { font-size: 15px; color: var(--cherry); margin: 26px 0 8px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+  p { margin-bottom: 12px; }
+  ul { margin: 0 0 12px 20px; }
+  li { margin-bottom: 5px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } .page { padding: 30px 22px; } }
+  .offer { background: #fdf1f4; border: 1px solid #f3cdd8; border-radius: 12px; padding: 20px 24px; margin-top: 26px; }
+  .offer b.num { font-size: 22px; color: var(--cherry); }
+  .quiet { color: var(--muted); font-size: 13px; }
+  strong { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Covet, the MVP</h1>
+  <p class="tag">What it is, and what came out · September 2026 · goes with the prototype</p>
+  <div class="rule"></div>
+
+  <p>Covet is a mystery box storefront for women. Customers buy a box with published, verifiable odds, reveal a real luxury item, and either ship it free or sell it back instantly for site credit. Around that core: free daily boxes, a weekly giveaway, creator referral codes, and an operator panel that runs the whole thing. The prototype shows every screen of it working; this page is the map of what's in the build and what deliberately isn't.</p>
+
+  <h2>What came out</h2>
+  <ul>
+    <li>iOS app (later, with you, at a premium, once there's revenue)</li>
+    <li>The Boutique storefront</li>
+    <li>Bank transfers and any payout rail. Launch is credit only</li>
+    <li>Crypto payments</li>
+    <li>Microservices. One deployable app, one Postgres database, one background worker</li>
+    <li>Creator claim approvals and in-product tax forms. Creator earnings just auto-credit; tax paperwork is handled manually at my volume</li>
+    <li>External penetration testing (I bring my own vendor; your internal testing stays, plus cooperation on fix cycles)</li>
+    <li>Discovery as a paid phase. The prototype and spec are the backlog</li>
+  </ul>
+
+  <h2>What the MVP is</h2>
+  <div class="cols">
+    <div>
+      <ul>
+        <li>Accounts: email plus code verification, Google sign in, password reset</li>
+        <li>KYC (Didit), one time, triggered at first free box claim, first shipment, or first gift card trade</li>
+        <li>Payment integration: the processor I designate, hosted checkout plus webhooks, wallet funding and pay the difference checkout</li>
+        <li>Wallet ledger with distinct credit classes (deposits, earned credit, boxes-only locked credit); exit rules per the build spec</li>
+        <li>Provably fair reveals via the random.org API connection: signed seeds, the exact spec and working verifier are on the prototype's fairness page</li>
+        <li>Covet boxes with published odds, four reveal styles</li>
+        <li>Customer wishlist boxes with automatic pricing and capped odds</li>
+        <li>Shelf: ship free or instant buyback on every pull</li>
+      </ul>
+    </div>
+    <div>
+      <ul>
+        <li>Free daily boxes with claim caps and streaks</li>
+        <li>Weekly giveaway: 5 free entries daily, 1 entry per dollar, random.org draw</li>
+        <li>Creator codes with automatic earnings credit</li>
+        <li>Admin: box builder with supplier catalog sync over the Brands Gateway and FragranceX API connections, plus custom manual items, odds editing with auto balance, buyback dials, fulfillment queue with stock-out flow, low stock panel with box on/off, users with flags and per user shelves, transaction lookup, creators view with code editing, stats, master switches (maintenance, deposits, gift cards, giveaway, daily program)</li>
+        <li>Transactional email, event tracking, 404, everything else demonstrated in the prototype</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <h2>Optional line item</h2>
+  <p>The gift card trade page (closed loop brands via a provider API). Price it separately; I may hold it for a fast follow after launch.</p>
+
+  <p class="quiet" style="margin-top:26px">Commercials are in my email. The prototype is the spec: if a flow is clickable there, it is in scope exactly as shown.</p>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gift Cards · Covet</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css?v=310" />
+  <style>
+    .gc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+    .gc-card {
+      background: var(--surface); border: 1px solid var(--line-soft); border-radius: 22px;
+      padding: 20px; box-shadow: var(--shadow-soft);
+      display: flex; flex-direction: column; gap: 12px;
+      transition: transform 0.35s var(--spring), box-shadow 0.35s;
+    }
+    .gc-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+    .gc-face {
+      height: 110px; border-radius: 14px; position: relative; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-family: var(--serif); font-size: 22px; letter-spacing: 0.02em;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 10px 22px rgba(90,40,60,0.18);
+    }
+    .gc-face::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.22) 45%, transparent 60%); }
+    .gc-face small { position: absolute; right: 12px; bottom: 8px; font-family: var(--sans); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.85; }
+    .gc-denoms { display: flex; gap: 8px; }
+    .gc-denom {
+      flex: 1; padding: 9px 4px; border-radius: 12px; border: 1px solid var(--line-soft);
+      background: var(--bg); cursor: pointer; text-align: center;
+      font: 700 13px var(--sans); color: var(--ink);
+      transition: all 0.2s;
+    }
+    .gc-denom span { display: block; font-size: 9.5px; font-weight: 600; color: var(--muted); margin-top: 2px; }
+    .gc-denom.on { border-color: var(--gold); background: var(--gold-dim); color: var(--gold); }
+    .gc-denom.on span { color: var(--gold); }
+    .gc-chip { align-self: flex-start; font-size: 9.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #2c8a4b; background: #e5f5ea; border-radius: 100px; padding: 4px 10px; }
+    .gc-note { margin-top: 34px; padding: 20px 24px; background: var(--surface); border: 1px solid var(--line-soft); border-radius: 18px; font-size: 12.5px; color: var(--muted); max-width: 660px; }
+  </style>
+</head>
+<body data-page="giftcards">
+  <header class="site-head"></header>
+
+  <main>
+    <section class="page-head" style="padding-bottom:32px">
+      <div class="shell">
+        <span class="eyebrow">Gift cards</span>
+        <h1 class="display">Trade your credit for <em>the stores you love.</em></h1>
+        <p class="lede" style="max-width:54ch">Your balance can become a gift card, delivered to your phone in a text the moment you trade. Real cards, real stores, yours to spend anywhere they are.</p>
+      </div>
+    </section>
+
+    <section class="shell">
+      <div class="wallet-band" style="margin-bottom:26px">
+        <div class="amount"><small>Balance</small><span data-wallet></span></div>
+        <div class="actions"><a class="btn btn-ghost" style="background:transparent;color:#fff;border-color:rgba(255,255,255,0.3)" href="cases.html">Or open a box ♥</a></div>
+      </div>
+      <div class="gc-grid" id="gcGrid"></div>
+      <div class="gc-note">
+        Cards are delivered by text and email, usually within minutes. A one-time identity check applies to your first trade. Cards trade from earned credit like buybacks and creator earnings; deposits spend on boxes or refund to your card, and credit from free pulls and sealed give-backs spends on boxes only. All gift card sales final.
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-foot"></footer>
+
+  <script src="js/data.js?v=310"></script>
+  <script src="js/art.js?v=310"></script>
+  <script src="js/app.js?v=310"></script>
+  <script>
+    /* closed-loop retail brands only: no open-loop prepaid, no fraud-magnet
+       brands (Apple/Google Play/Steam). "featured" trades at full value
+       (deepest provider discounts still profit at par); others carry a
+       premium inside the credit price. Production: provider API (Giftbit
+       tier), KYC gate before first trade, 24-72h velocity/delay rules.
+       Production trades draw on EARNED credit only (buybacks, creator
+       earnings): raw deposits spend on boxes or refund to source, never
+       trade for cards. The demo wallet is a single number, so that split
+       is not simulated here. */
+    const GC_BRANDS = [
+      { id: "sephora",   name: "Sephora",     bg: "linear-gradient(135deg,#141414,#3a3a3a)", featured: true },
+      { id: "ulta",      name: "Ulta Beauty", bg: "linear-gradient(135deg,#e2543e,#f0906d)", featured: true },
+      { id: "amazon",    name: "Amazon",      bg: "linear-gradient(135deg,#232f3e,#37475a)", rate: 1.1 },
+      { id: "nordstrom", name: "Nordstrom",   bg: "linear-gradient(135deg,#3b3b3b,#6b6b6b)", rate: 1.08 },
+      { id: "starbucks", name: "Starbucks",   bg: "linear-gradient(135deg,#006241,#1e8a63)", rate: 1.06 },
+      { id: "lulu",      name: "lululemon",   bg: "linear-gradient(135deg,#c8102e,#e8506a)", rate: 1.08 },
+      { id: "glossier",  name: "Glossier",    bg: "linear-gradient(135deg,#f2b8c6,#e895ab)", rate: 1.06 },
+      { id: "freepeople",name: "Free People", bg: "linear-gradient(135deg,#7a6552,#a58b72)", rate: 1.08 },
+    ];
+    const GC_FACES = [25, 50, 100];
+    const gcSel = {};
+    function gcPrice(b, face) { return Math.ceil(face * (b.featured ? 1 : b.rate)); }
+    function gcRender() {
+      document.getElementById("gcGrid").innerHTML = GC_BRANDS.map((b) => {
+        const face = gcSel[b.id] || 50;
+        return `<div class="gc-card">
+          ${b.featured ? '<span class="gc-chip">Full value ♥</span>' : `<span class="gc-chip" style="color:var(--muted);background:var(--bg)">Gift card</span>`}
+          <div class="gc-face" style="background:${b.bg}">${b.name}<small>gift card</small></div>
+          <div class="gc-denoms">
+            ${GC_FACES.map((f) => `<button class="gc-denom ${face === f ? "on" : ""}" onclick="gcSel['${b.id}']=${f};gcRender()">$${f}<span>${gcPrice(b, f)} credit</span></button>`).join("")}
+          </div>
+          <button class="btn btn-gold" style="width:100%" onclick="gcTrade('${b.id}')">Trade ${gcPrice(b, face)} credit · $${face} card</button>
+        </div>`;
+      }).join("");
+      renderWallet();
+    }
+    function gcTrade(id) {
+      const b = GC_BRANDS.find((x) => x.id === id);
+      const face = gcSel[id] || 50;
+      const price = gcPrice(b, face);
+      const spendable = getWallet() - getLocked();
+      if (spendable < price) {
+        openModal(`
+          <span class="eyebrow">Gift cards</span>
+          <h2>Not quite enough yet</h2>
+          <p class="modal-sub">This card trades for ${money(price)} of credit and you have ${money(Math.max(0, spendable))} available. ${getLocked() > 0 ? `Your ${money(getLocked())} of box credit spends on boxes only.` : "Sell back a pull or two and come right back."}</p>
+          <div class="modal-actions">
+            <a class="btn btn-gold" href="inventory.html">My shelf</a>
+            <button class="btn btn-quiet" onclick="closeModal()">Okay</button>
+          </div>`);
+        return;
+      }
+      requireKyc(() => {
+        gcDeliver = "text";
+        openModal(`
+          <span class="eyebrow">${b.name}</span>
+          <h2>$${face} gift card</h2>
+          <p class="modal-sub">Trade <b style="color:var(--ink)">${money(price)}</b> of your credit for a <b style="color:var(--ink)">$${face} ${b.name} gift card</b>. Gift card trades are final.</p>
+          <div class="field" style="text-align:left"><label>Send it to</label>
+            <div style="display:flex;gap:8px">
+              <button id="gcDvText" class="btn btn-gold" style="flex:1" onclick="gcSetDeliver('text')">📱 My phone</button>
+              <button id="gcDvEmail" class="btn btn-ghost" style="flex:1" onclick="gcSetDeliver('email')">✉️ My email</button>
+            </div>
+          </div>
+          <div class="modal-actions" style="margin-top:14px">
+            <button class="btn btn-gold" style="width:100%" onclick="gcConfirm('${id}', ${face}, ${price})">Trade it ♥</button>
+            <button class="btn btn-quiet" style="width:100%" onclick="closeModal()">Not now</button>
+          </div>`);
+      });
+    }
+    let gcDeliver = "text";
+    function gcSetDeliver(mode) {
+      gcDeliver = mode;
+      const t = document.getElementById("gcDvText"), e = document.getElementById("gcDvEmail");
+      t.className = "btn " + (mode === "text" ? "btn-gold" : "btn-ghost"); t.style.flex = "1";
+      e.className = "btn " + (mode === "email" ? "btn-gold" : "btn-ghost"); e.style.flex = "1";
+    }
+    function gcDeliverWord() { return gcDeliver === "text" ? "by text" : "by email"; }
+    function gcConfirm(id, face, price) {
+      const b = GC_BRANDS.find((x) => x.id === id);
+      setWallet(getWallet() - price);
+      confettiBurst();
+      if (getAdminSettings().reviewTrades) {
+        openModal(`
+          <span class="eyebrow">${b.name}</span>
+          <h2>On its way ♥</h2>
+          <p class="modal-sub">Trades get a quick review right now. Your $${face} ${b.name} card arrives ${gcDeliverWord()} as soon as it clears, usually within hours.</p>
+          <div class="modal-actions"><button class="btn btn-gold" onclick="closeModal()">Done</button></div>`);
+        gcRender();
+        return;
+      }
+      const code = "GC-" + Math.random().toString(36).slice(2, 6).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
+      openModal(`
+        <span class="eyebrow">✨ Yours</span>
+        <h2>$${face} ${b.name} card</h2>
+        <p class="modal-sub">Sent ${gcDeliverWord()} just now (instant here in the demo). Claim code:</p>
+        <p style="font-family:var(--serif);font-size:24px;letter-spacing:0.06em;background:var(--gold-dim);border-radius:14px;padding:14px;text-align:center;color:var(--gold)">${code}</p>
+        <div class="modal-actions">
+          <a class="btn btn-gold" href="cases.html">Back to the boxes</a>
+          <button class="btn btn-quiet" onclick="closeModal()">Done</button>
+        </div>`);
+      gcRender();
+    }
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!getAdminSettings().giftCards) {
+        document.getElementById("gcGrid").innerHTML = `<div class="gc-note" style="margin:0;grid-column:1/-1"><b style="color:var(--ink)">Gift card trades are paused for a moment.</b> Your balance is safe and spends on any box. Cards will be back shortly ♥</div>`;
+        document.querySelector(".gc-note:last-of-type").style.display = "none";
+        return;
+      }
+      gcRender();
+    });
+  </script>
+</body>
+</html>
