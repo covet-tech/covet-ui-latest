@@ -4,11 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fairness · Covet</title>
-  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=2" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=310" />
+  <link rel="stylesheet" href="css/style.css?v=285" />
 </head>
 <body data-page="fairness">
   <header class="site-head"></header>
@@ -16,7 +17,7 @@
   <main>
     <section class="page-head" style="padding-bottom:44px">
       <div class="shell">
-        <span class="eyebrow">Fairness</span>
+        <span class="eyebrow">Provably fair</span>
         <h1 class="display">Every pull is <em>verifiable.</em></h1>
         <p class="lede">The result of a box is fixed before you open it, provable with math, and checkable by you. No trust required, only arithmetic.</p>
       </div>
@@ -32,7 +33,7 @@
           <p>Your browser holds a <code>client seed</code> you can edit at any time. Because we never know it in advance, we cannot pick outcomes even if we wanted to.</p>
 
           <h3>3 · The pull is pure arithmetic</h3>
-          <p>Each open combines the three values: <code>SHA-256(serverSeed : clientSeed : nonce)</code>. The first 8 hex characters become a number, reduced to a roll from 0 to 100. The roll maps onto the box's published odds table: if Baccarat Rouge 540 occupies 99.4 to 100, a roll of 99.63 pulls it.</p>
+          <p>Each open runs the industry-standard <code>HMAC-SHA256</code>, keyed with the server seed, over <code>clientSeed:nonce</code>. The first 4 bytes of the result become an exact fraction between 0 and 1, times 100, for a roll from 0 to 100 with no rounding bias. The roll maps onto the box's published odds table, where every item shows its exact roll range: if Baccarat Rouge 540 occupies 99.4 to 100, a roll of 99.63 pulls it.</p>
 
           <h3>4 · Then we show our hand</h3>
           <p>When a server seed rotates, the retired seed is revealed on your account page, next to its random.org signature. Recompute the hash, recompute your rolls, confirm every pull you made. The verifier on this page runs the same math live. Seeds stay public forever.</p>
@@ -41,7 +42,7 @@
           <p>The weekly giveaway winner is drawn by random.org's signed draw service, and the signed certificate is linked from every winner announcement. Not our pick, not our server, provably.</p>
 
           <h3>The floor, in writing</h3>
-          <p>Odds tables are printed on every box and sum to exactly 100%. Market values are checked against current retail and resale prices. Every reveal comes with an instant buyback offer, shown the moment your piece lands, and your balance is always yours: spend it on any box, or trade it for gift cards to the stores you love.</p>
+          <p>Odds tables are printed on every box and sum to exactly 100%. Market values are checked against current retail and resale prices. Every reveal comes with an instant buyback offer, shown the moment your piece lands, credited to your balance for your next box.</p>
         </div>
 
         <div class="verifier">
@@ -56,7 +57,7 @@
           </div>
           <div class="field">
             <label>Your client seed</label>
-            <input id="vClient" value="ava-lucky-13" />
+            <input id="vClient" value="riley-lucky-13" />
           </div>
           <div class="field">
             <label>Nonce (pull number)</label>
@@ -75,29 +76,28 @@
 
   <footer class="site-foot"></footer>
 
-  <script src="js/data.js?v=310"></script>
-  <script src="js/art.js?v=310"></script>
-  <script src="js/app.js?v=310"></script>
+  <script src="js/data.js?v=290"></script>
+  <script src="js/art.js?v=281"></script>
+  <script src="js/app.js?v=293"></script>
   <script>
-    async function sha256hex(str) {
-      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
-      return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
-    }
+    /* the math lives in provablyFairRoll / seedHash (js/data.js) */
     async function updateHash() {
-      document.getElementById("vHash").value = await sha256hex(document.getElementById("vServer").value);
+      document.getElementById("vHash").value = await seedHash(document.getElementById("vServer").value);
     }
     async function verifyPull() {
       const server = document.getElementById("vServer").value;
       const client = document.getElementById("vClient").value;
       const nonce = document.getElementById("vNonce").value;
       const kase = getCase(document.getElementById("vCase").value);
-      const hex = await sha256hex(`${server}:${client}:${nonce}`);
-      const roll = (parseInt(hex.slice(0, 8), 16) % 1000000) / 10000; /* 0 to 99.9999 */
+      const { hex, roll } = await provablyFairRoll(server, client, nonce);
       const drop = rollDrop(kase, roll);
       const rar = RARITY[drop.rarity];
+      let from = 0;
+      for (const d of kase.drops) { if (d === drop) break; from += d.odds; }
       document.getElementById("vResult").innerHTML =
         `Digest <code style="font-size:11px">${hex.slice(0, 16)}…</code> → roll <span class="roll">${roll.toFixed(4)}</span><br>
-         <b>${drop.house} ${drop.name}</b> · ${drop.size} · <span class="rarity-chip" style="--rar:${rar.color}">${rar.label}</span>`;
+         <b>${drop.house} ${drop.name}</b> · ${drop.size} · <span class="rarity-chip" style="--rar:${rar.color}">${rar.label}</span><br>
+         <span class="micro">Its range on the box page: rolls ${from.toFixed(2)}–${(from + drop.odds).toFixed(2)}</span>`;
     }
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("vCase").innerHTML = CASES.map((c) => `<option value="${c.id}">${c.name} · ${money(c.price)}</option>`).join("");

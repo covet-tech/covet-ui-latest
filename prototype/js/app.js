@@ -1,5 +1,5 @@
 /* COVET · shared shell: header, footer, wallet, modals, gate, ticker,
-   confetti, wishlist hearts, giveaway, waitlist */
+   confetti, wishlist hearts, giveaway shares, waitlist */
 
 /* ---------- item glyphs ---------- */
 function bottleSVG(size = 26) {
@@ -22,6 +22,13 @@ function accessorySVG(size = 26) { /* sunglasses: the generic accessory */
     <circle cx="47" cy="22" r="11" stroke="currentColor" stroke-width="2.4"/>
     <path d="M28 20 Q32 16 36 20" stroke="currentColor" stroke-width="2.4" fill="none"/>
     <path d="M6 20 L2 14 M58 20 L62 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </svg>`;
+}
+function heelSVG(size = 26) { /* stiletto pump, side profile, toe left */
+  return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M6 50 Q6 44 14 44 L22 44 Q31 44 37 36 L47 21 Q51 16 55 19 L58 25 Q59 30 54 33 Q44 39 35 50 Q31 54 23 54 L11 54 Q6 54 6 50 Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M51 35 L54 58 M57 29 L58 58 M54 58 L58 58" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M14 50 L28 50" stroke="currentColor" stroke-width="1.2" opacity="0.45"/>
   </svg>`;
 }
 function necklaceSVG(size = 26) { /* draped chain + pendant */
@@ -80,7 +87,38 @@ function setWallet(v) {
   localStorage.setItem(LS_WALLET, String(Math.round(v * 100) / 100));
   renderWallet();
 }
-/* purchase flag: gates free-ship counts and gift card trades */
+/* saved payout methods (demo) */
+const LS_METHODS = "covet_methods";
+function getMethods() {
+  try { return JSON.parse(localStorage.getItem(LS_METHODS)) || ["Visa •••• 4127 (original method)", "Bank transfer (ACH)"]; } catch { return ["Visa •••• 4127 (original method)"]; }
+}
+function addMethodModal() {
+  openModal(`
+    <span class="eyebrow">New payout method</span>
+    <h2>Where should it land?</h2>
+    <div class="addr-form" style="margin-bottom:16px">
+      <div class="field"><label>Type</label><select id="nmType"><option>Bank account (ACH)</option><option>Debit card</option></select></div>
+      <div class="field"><label>Nickname</label><input id="nmName" placeholder="Chase checking" maxlength="24" /></div>
+      <div class="field"><label>Last 4 digits</label><input id="nmLast4" maxlength="4" placeholder="1234" /></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-gold" onclick="saveNewMethod()">Save method</button>
+      <button class="btn btn-quiet" onclick="openWithdrawModal()">Cancel</button>
+    </div>
+    <p class="micro after-note">Demo only: production collects this through the payment partner, never on Covet.</p>
+  `);
+}
+function saveNewMethod() {
+  const type = document.getElementById("nmType").value.includes("card") ? "Debit" : "ACH";
+  const name = (document.getElementById("nmName").value || "New method").replace(/[<>&"]/g, "").trim();
+  const last4 = (document.getElementById("nmLast4").value || "0000").replace(/\D/g, "").slice(0, 4);
+  const list = getMethods();
+  list.push(`${name} •••• ${last4} (${type})`);
+  localStorage.setItem(LS_METHODS, JSON.stringify(list));
+  openWithdrawModal();
+}
+
+/* withdrawals unlock with the first purchase on the account */
 const LS_DEPOSITED = "covet_deposited";
 function hasDeposited() { return localStorage.getItem(LS_DEPOSITED) === "1"; }
 
@@ -90,6 +128,13 @@ const LS_FREE_SHIPS = "covet_free_ships";
 function freeShipsUsed() { return parseInt(localStorage.getItem(LS_FREE_SHIPS) || "0", 10); }
 function bumpFreeShips() { localStorage.setItem(LS_FREE_SHIPS, String(freeShipsUsed() + 1)); }
 function isFreeCaseId(caseId) { const k = getCase(caseId); return !!(k && k.free); }
+/* free-box commons (candles, incense) go out by plain mail, no tracking number */
+function isUntrackedDrop(caseId, dropId) {
+  if (!isFreeCaseId(caseId)) return false;
+  const d = getCase(caseId).drops.find((x) => x.id === dropId);
+  return !!d && d.rarity !== "grail";
+}
+const UNTRACKED_NOTE = "Free box commons ship without tracking, usually arriving within 7 to 10 business days.";
 function freeShipGate() {
   if (hasDeposited() || freeShipsUsed() < 1) return false;
   openModal(`
@@ -137,7 +182,7 @@ function openAddressModal(next) {
     <span class="eyebrow">Shipping address</span>
     <h2>Where's it headed? ♥</h2>
     <div class="addr-form">
-      <div class="field"><label>Full name</label><input id="adName" value="${a.name || ""}" placeholder="Ava Covet" /></div>
+      <div class="field"><label>Full name</label><input id="adName" value="${a.name || ""}" placeholder="Riley Covet" /></div>
       <div class="field"><label>Street address</label><input id="adStreet" value="${a.street || ""}" placeholder="400 W 14th St" /></div>
       <div class="field"><label>Apt, suite (optional)</label><input id="adApt" value="${a.apt || ""}" placeholder="Apt 6B" /></div>
       <div class="addr-row">
@@ -170,20 +215,12 @@ function addrLine() {
   return a ? `${a.name} · ${a.street}${a.apt ? ", " + a.apt : ""}, ${a.city}, ${a.state} ${a.zip}` : "";
 }
 
-/* one-time identity check: gates the free box and gift card trades */
+/* one-time identity check, once per account, at whichever comes first:
+   the first free box or the first shipment (bank transfers are not in the MVP) */
 const LS_KYC = "covet_kyc_ok";
 function hasKyc() { return localStorage.getItem(LS_KYC) === "1"; }
 let _kycNext = null;
 function requireKyc(next) {
-  if (getAdminSettings().kycLock && !hasKyc()) {
-    openModal(`
-      <span class="eyebrow">Identity check</span>
-      <h2>Verification is paused</h2>
-      <p class="modal-sub">New identity checks are paused for a moment, love. Anything you've already verified still works, and everything else on Covet is open. Try again a little later.</p>
-      <div class="modal-actions"><button class="btn btn-gold" onclick="closeModal()">Okay</button></div>
-    `);
-    return;
-  }
   if (hasKyc()) { next(); return; }
   _kycNext = next;
   openModal(`
@@ -273,7 +310,7 @@ function openFreeCapModal() {
   openModal(`
     <span class="eyebrow">Free boxes</span>
     <h2>Three on us. The rest is on you ♥</h2>
-    <p class="modal-sub">You've opened your ${FREE_OPEN_CAP} free boxes, so you know exactly how this works. Open any box, even the $10 one, and the daily free box unlocks forever, streaks and all.</p>
+    <p class="modal-sub">You've opened your ${FREE_OPEN_CAP} free boxes, so you know exactly how this works. Open any box, even the smallest one, and the daily free box unlocks forever, streaks and all.</p>
     <div class="modal-actions">
       <a class="btn btn-gold" href="cases.html">Browse the boxes</a>
       <button class="btn btn-quiet" onclick="closeModal()">Maybe later</button>
@@ -339,13 +376,9 @@ function streakDays() {
   return st.last && streakGap(st.last, today) <= 1 ? st.count : 0;
 }
 function refreshDailyCta() {
-  if (!getAdminSettings().giveaway) {
-    document.querySelectorAll("[data-dailycta]").forEach((b) => { b.textContent = "Back soon ✨"; b.disabled = true; });
-    return;
-  }
   const claimed = !canClaimDaily();
   document.querySelectorAll("[data-dailycta]").forEach((b) => {
-    b.textContent = claimed ? "Claimed · back tomorrow ✨" : `Claim today's 5 free ${entriesWord(5)}`;
+    b.textContent = claimed ? "Claimed · back tomorrow" : `Claim today's 5 free ${entriesWord(5)}`;
     b.disabled = claimed;
   });
   const ge = document.getElementById("giveEntries");
@@ -354,14 +387,13 @@ function refreshDailyCta() {
 function claimDaily() {
   if (!canClaimDaily()) return;
   localStorage.setItem(LS_DAILY, new Date().toISOString().slice(0, 10));
-  if (!getAdminSettings().giveaway) { giveawayPausedModal(); return; }
   const n = addEntries(5);
   refreshDailyCta();
   confettiBurst();
   openModal(`
-    <span class="eyebrow">✨ Claimed</span>
+    <span class="eyebrow">Claimed</span>
     <h2>5 more entries, yours</h2>
-    <p class="modal-sub">That's ${n} ${entriesWord(n)} in the draw for ${GIVEAWAY.prize}. Come back tomorrow for 5 more, and every dollar you open adds another.</p>
+    <p class="modal-sub">That's ${n} entries in the draw for ${GIVEAWAY.prize}. Come back tomorrow for 5 more.</p>
     <div class="modal-actions">
       <a class="btn btn-gold" href="build.html">Browse while you're here</a>
       <button class="btn btn-quiet" onclick="closeModal()">Done</button>
@@ -376,14 +408,6 @@ const HOLIDAYS = {
   stpatricks: { label: "St. Patrick's", flake: "\u2618\ufe0f", n: 14, entry: "clover",  entries: "clovers" },
 };
 function holidayTheme() { try { return localStorage.getItem("covet_holiday") || ""; } catch { return ""; } }
-function giveawayPausedModal() {
-  openModal(`
-    <span class="eyebrow">This week's giveaway</span>
-    <h2>Back soon ✨</h2>
-    <p class="modal-sub">The giveaway is between prizes right now. Your entries are safe, and a new prize lands soon.</p>
-    <div class="modal-actions"><button class="btn btn-gold" onclick="closeModal()">Okay</button></div>
-  `);
-}
 function entriesWord(n) {
   const h = HOLIDAYS[holidayTheme()];
   return h ? (n === 1 ? h.entry : h.entries) : (n === 1 ? "entry" : "entries");
@@ -392,7 +416,7 @@ function entriesWord(n) {
 function themeEntryWords() {
   const h = HOLIDAYS[holidayTheme()];
   if (!h) return;
-  document.querySelectorAll(".lux-give, [data-dailycta], .overlay .modal, .streak-panel").forEach((root) => {
+  document.querySelectorAll(".gw-banner, [data-dailycta], .overlay .modal, .streak-panel").forEach((root) => {
     const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     let node;
     while ((node = walk.nextNode())) {
@@ -449,7 +473,7 @@ function renderShell(active) {
           <p class="micro" style="margin-top:14px;max-width:30ch;color:rgba(255,255,255,0.55)">Every box holds something real. Ship it or sell it back.</p>
           <p class="foot-vow">♥ Every piece real and authenticated, always.</p>
           <button class="btn foot-support" onclick="openSupportModal()"><span class="fs-dot"></span> Live support · we're here</button>
-          <p class="micro" style="margin-top:10px;color:rgba(255,255,255,0.45)">or support@covet.gg</p>
+          <p class="micro" style="margin-top:10px;color:rgba(255,255,255,0.45)">or <a href="mailto:support@covet.gg" style="color:inherit">support@covet.gg</a></p>
           <div class="foot-social">
             <a href="https://tiktok.com/@covet.gg" target="_blank" rel="noopener">TikTok</a>
             <a href="https://instagram.com/covet.gg" target="_blank" rel="noopener">Instagram</a>
@@ -461,12 +485,12 @@ function renderShell(active) {
           <a href="cases.html">The Boxes</a>
           <a href="build.html">My Wishlist</a>
           <a href="inventory.html">My Shelf</a>
-          <a href="index.html#giveaway">This Week's Giveaway</a>
+          <a href="index.html#giveaway">${gwTerms().ThisP} Giveaway</a>
         </div>
         <div class="foot-col">
           <h5>Covet</h5>
           <a href="creators.html">Creators</a>
-          <a href="fairness.html">Fairness</a>
+          <a href="fairness.html">Provably Fair</a>
           <a href="faq.html">FAQ</a>
           <a href="#" onclick="openShippingModal();return false">Shipping</a>
           <a href="buyback-policy.html">Buyback Policy</a>
@@ -482,14 +506,17 @@ function renderShell(active) {
         </div>
       </div>
       <div class="foot-legal">
-        <p>Covet is a retail experience. Every box is the purchase of one genuine, sealed product of a stated minimum value, selected at random from a published odds table. All items are verified authentic before listing. Our instant buyback is a repurchase offer at the price shown, credited to your balance. Buyback offers on free and promotional boxes are reduced and capped; your first free pull ships on us and further free-pull shipping unlocks with your first purchase; free-pull credit is spendable on boxes only until used in a purchase. Box opens are final; unspent deposits are refundable to your original payment method (see FAQ). Balance trades for gift cards after a completed purchase on the account, subject to identity verification. Weekly giveaways require no purchase; see rules for a free entry route. If a revealed item becomes unavailable before fulfillment, you choose: your balance credited the item's full listed value, or the box price refunded to your original payment method.</p>
-        <p>Available to residents 18 and older. Not available in certain states and regions where randomized retail products are restricted. See our eligibility page before purchase. © 2026 Covet, Inc. All trademarks are property of their respective houses; Covet is an independent retailer and is not affiliated with any brand featured.</p>
+        <p>Covet is a retail experience. Every box is the purchase of one genuine, sealed product of a stated minimum value, selected at random from a published odds table. All items are verified authentic before listing. Our instant buyback is a repurchase offer at the price shown, credited to your balance. Buyback offers on free and promotional boxes are reduced and capped; your first free pull ships on us and further free-pull shipping unlocks with your first purchase; free-pull credit is spendable on boxes only until used in a purchase. Box opens are final; unspent deposits are refundable to your original payment method (see FAQ). ${gwTerms().Adj} giveaways require no purchase; see rules for a free entry route. If a revealed item becomes unavailable before fulfillment, you choose: your balance credited the item's full listed value, or the box price refunded to your original payment method.</p>
+        <p>Available to residents 18 and older (19+ in Alabama and Nebraska). Not available in certain states and regions where randomized retail products are restricted. See <a href="terms.html" style="color:inherit;text-decoration:underline">who can use Covet</a> before purchase. © 2026 SD1 Entertainment LLC, doing business as Covet. All trademarks are property of their respective houses; Covet is an independent retailer and is not affiliated with any brand featured.</p>
       </div>
     </div>`;
   const h = document.querySelector(".site-head");
   const f = document.querySelector(".site-foot");
   if (h) h.innerHTML = header;
   if (f) f.innerHTML = footer;
+  /* static pages mark weekly/monthly words with data-gw="<key of gwTerms()>" */
+  const gw = gwTerms();
+  document.querySelectorAll("[data-gw]").forEach((el) => { if (gw[el.dataset.gw]) el.textContent = gw[el.dataset.gw]; });
   /* dev-only: reset chip, top left. Click = reset daily claims. Shift-click = wipe everything. */
   document.body.insertAdjacentHTML("beforeend",
     `<button class="dev-reset" onclick="devReset(event)" title="Click: reset daily claims · Shift-click: full wipe">↺ reset</button>`);
@@ -555,39 +582,34 @@ function refreshWishStats() {
 }
 
 /* ---------- confetti ---------- */
+/* falling confetti: pieces drift down from the top of the screen */
 function confettiBurst(colors = ["#e0417c", "#ffb3c9", "#eeb020", "#ffffff"]) {
-  const canvas = document.createElement("canvas");
-  canvas.className = "confetti-canvas";
-  canvas.width = innerWidth; canvas.height = innerHeight;
-  document.body.appendChild(canvas);
-  const ctx = canvas.getContext("2d");
-  const parts = Array.from({ length: 140 }, () => ({
-    x: innerWidth / 2 + (Math.random() - 0.5) * 120,
-    y: innerHeight * 0.4,
-    vx: (Math.random() - 0.5) * 16,
-    vy: -6 - Math.random() * 12,
-    w: 5 + Math.random() * 6,
-    h: 8 + Math.random() * 8,
-    rot: Math.random() * Math.PI,
-    vr: (Math.random() - 0.5) * 0.3,
-    color: colors[Math.floor(Math.random() * colors.length)],
-  }));
-  let frames = 0;
-  (function tick() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (const p of parts) {
-      p.x += p.vx; p.y += p.vy; p.vy += 0.42; p.vx *= 0.99; p.rot += p.vr;
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.rot);
-      ctx.fillStyle = p.color;
-      ctx.globalAlpha = Math.max(0, 1 - frames / 110);
-      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-      ctx.restore();
-    }
-    if (++frames < 120) requestAnimationFrame(tick);
-    else canvas.remove();
-  })();
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  for (let i = 0; i < 36; i++) {
+    const c = document.createElement("div");
+    c.className = "confetti-piece";
+    c.style.left = Math.random() * 100 + "vw";
+    c.style.background = colors[i % colors.length];
+    c.style.animationDuration = 1.6 + Math.random() * 1.4 + "s";
+    c.style.animationDelay = Math.random() * 0.4 + "s";
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 3600);
+  }
+}
+
+/* reveal finished → result card, with the rarity shown in the background:
+   the backdrop washes in the tier's color and the tier name sits above the
+   card (every reveal style). One moment, not a separate step. */
+function revealResult(kase, drop, opts) {
+  openResultModal(kase, drop, opts);
+}
+/* the tier name always sits above the white card, in the normal flow: the
+   pair centers together on tall screens and scrolls together on short ones */
+function addRarityBackdrop(ov, drop) {
+  const rar = RARITY[drop.rarity] || RARITY.reserve;
+  ov.classList.add("rarity-ov");
+  ov.style.setProperty("--rar", rar.color);
+  ov.insertAdjacentHTML("afterbegin", `<div class="rarity-word" aria-hidden="true">${rar.label}</div>`);
 }
 
 /* ---------- modal system ---------- */
@@ -617,11 +639,11 @@ function closeModal() {
 /* ---------- pull result modal ---------- */
 function openResultModal(kase, drop, opts = {}) {
   const rar = RARITY[drop.rarity];
-  const sparkle = drop.rarity === "grail" || drop.rarity === "archive" ? "✨ " : "";
+  const sparkle = "";
   confettiBurst([rar.color, "#ffb3c9", "#eeb020", "#ffffff"]);
-  openModal(`
+  const ov = openModal(`
     <div class="result-glow" style="--rar:${rar.color}"></div>
-    <span class="eyebrow" style="color:${rar.color}">${sparkle}${rar.label} · ${drop.odds}% pull</span>
+    <span class="eyebrow" style="color:${rar.color}">${sparkle}${drop.odds}% pull<span class="sr-only"> · ${rar.label}</span></span>
     <div class="result-bottle" style="--rar:${rar.color}">${productArt(drop, 68)}</div>
     <h2>${drop.house}<br><em style="font-style:italic;font-weight:320">${drop.name}</em></h2>
     <p class="modal-sub">${drop.conc} · ${drop.size}${drop.kind === "bag" ? "" : " · sealed and authenticated"}</p>
@@ -650,6 +672,7 @@ function openResultModal(kase, drop, opts = {}) {
       : "Undecided? It waits on your shelf. Both options stay open."}</p>
     <p class="micro" style="margin-top:6px"><a href="fairness.html" style="color:var(--gold);text-decoration:none">verify this pull ↗</a></p>
   `);
+  addRarityBackdrop(ov, drop);
   themeEntryWords();
 }
 
@@ -769,9 +792,9 @@ function renderRevealModes() {
   });
 }
 
-/* ---------- The Slow Unwrap: tap-to-peel tissue reveal. Three taps at
-   the customer's own pace; the item silhouette sharpens with each layer
-   before the box opens. ---------- */
+/* ---------- The Slow Unwrap: tap-to-peel tissue, item ghosts into view.
+   Anticipation-dopamine + information-gap + IKEA effect: her own hands,
+   her own pace, a silhouette that sharpens with every layer. ---------- */
 function playTissuePeel(kase, cb) {
   const ov = document.createElement("div");
   ov.className = "gift-pop peelstage";
@@ -821,7 +844,7 @@ function playTissuePeel(kase, cb) {
     if (layer >= 3) return;
     layer++;
     if (layer === 1) {
-      winner = rollDrop(kase); /* roll locks at the first tap */
+      winner = rollDrop(kase); /* fate at the first touch */
       ov.querySelector(".pg-item").innerHTML = productArt(winner, 132);
       ov.style.setProperty("--rar", RARITY[winner.rarity].color);
       sub.textContent = "now the lid ♥";
@@ -838,9 +861,10 @@ function playTissuePeel(kase, cb) {
 }
 
 /* ---------- The Lucky Pick: shuffle, choose, rarity-tell reveal ----------
-   Three sealed boxes shuffle in; the customer taps one; it opens with a
-   beam tinted by rarity and the item pops out. The roll happens AT the tap
-   (production: server rolls on pick); all three boxes hold identical odds. */
+   Pop Mart's pick ritual + a Genshin-style rarity color tell. Three sealed
+   boxes tornado in and shuffle; she taps one; hers opens with a beam tinted
+   by rarity, the item pops out. The roll happens AT the tap (production:
+   server rolls on pick), so her choice is genuinely the moment of fate. */
 function playLuckyPick(kase, cb) {
   const ov = document.createElement("div");
   ov.className = "gift-pop pickstage";
@@ -879,11 +903,11 @@ function playLuckyPick(kase, cb) {
   }));
 }
 
-/* ---------- The Vault: a rotating carousel of sealed gift boxes.
-   The customer spins the ring, taps a box; it glides to center, the lid
-   opens, and pool items cycle inside before settling on the roll.
-   Roll happens AT the tap (production: server rolls on pick); every box
-   holds identical odds, the choice is presentation only. */
+/* ---------- The Vault: a shelf of sealed jewelry boxes. She swipes,
+   taps the one calling her, its lid swings open glowing, the pieces
+   flicker inside and settle on hers. IcyBox's pick-your-box ritual in
+   Covet's language. Roll happens AT the tap (production: server rolls
+   on pick); every box holds identical odds, the choice is the ritual. */
 function playVaultPick(kase, cb) {
   const ov = document.createElement("div");
   ov.className = "gift-pop vaultstage";
@@ -896,7 +920,9 @@ function playVaultPick(kase, cb) {
           ${Array.from({ length: N }, (_, i) => `
           <button class="vb" data-i="${i}" aria-label="Box ${i + 1}">
             <span class="vb-glow"></span>
+            <span class="vb-cone"></span>
             <span class="vb-item"></span>
+            <span class="vb-name"></span>
             <span class="pb-lid"><i></i></span>
             <span class="pb-body"><i></i></span>
           </button>`).join("")}
@@ -963,25 +989,37 @@ function playVaultPick(kase, cb) {
         const rar = RARITY[winner.rarity];
         const big = winner.rarity === "grail" || winner.rarity === "archive";
         const itemHost = btn.querySelector(".vb-item");
+        const nameHost = btn.querySelector(".vb-name");
+        /* the light from the open box follows whichever piece is showing:
+           neutral as the lid lifts, each flickering piece's rarity color,
+           then the winner's color once it lands. No early giveaway. */
+        btn.style.setProperty("--rar", "#f3dfa6");
+        /* flicker: fast then slowing, item name under each piece. Display-only
+           picks from the box (not weighted, never staged next to the winner);
+           the outcome was already rolled above. */
+        const delays = [70, 70, 80, 90, 100, 115, 135, 160, 195, 240, 300];
+        const pool = kase.drops.filter((d) => d !== winner);
+        const show = (d, size) => {
+          itemHost.innerHTML = productArt(d, size);
+          nameHost.textContent = `${d.house} ${d.name}`;
+          btn.style.setProperty("--rar", (RARITY[d.rarity] || rar).color);
+          btn.classList.remove("tick"); void btn.offsetWidth; btn.classList.add("tick");
+        };
+        let at = 480;
+        setTimeout(() => btn.classList.add("open"), at);
+        for (const dl of delays) {
+          at += dl;
+          setTimeout(() => show((pool.length ? pool : kase.drops)[Math.floor(Math.random() * (pool.length || kase.drops.length))], 64), at);
+        }
+        const lockAt = at + 380;
         setTimeout(() => {
-          btn.classList.add("open");
-          const pool = kase.drops.slice();
-          let tick = 0;
-          const cycle = setInterval(() => {
-            itemHost.innerHTML = productArt(pool[Math.floor(Math.random() * pool.length)], 64);
-            tick++;
-            if (tick >= 9) {
-              clearInterval(cycle);
-              itemHost.innerHTML = productArt(winner, 76);
-              btn.style.setProperty("--rar", rar.color);
-              btn.classList.add("landed");
-              btn.insertAdjacentHTML("beforeend", `<span class="pb-ring"></span>`);
-              if (big) setTimeout(() => ov.classList.add("bigpull"), 380);
-            }
-          }, 150);
-        }, 480);
-        setTimeout(() => ov.classList.add("fade"), 3250);
-        setTimeout(() => { cancelAnimationFrame(raf); ov.remove(); cb(winner); }, 3570);
+          show(winner, 64); /* same size as the flicker: the lock settles, it doesn't jump */
+          btn.classList.add("landed");
+          btn.insertAdjacentHTML("beforeend", `<span class="vb-lockring"></span>`);
+          if (big) setTimeout(() => ov.classList.add("bigpull"), 380);
+        }, lockAt);
+        setTimeout(() => ov.classList.add("fade"), lockAt + 1250);
+        setTimeout(() => { cancelAnimationFrame(raf); ov.remove(); cb(winner); }, lockAt + 1570);
       }
     };
     requestAnimationFrame(glide);
@@ -991,7 +1029,7 @@ function playVaultPick(kase, cb) {
 
 /* ---------- daily free box: opens in a popup, user stays on home ---------- */
 /* the gift moment: unbox pressed → the room dims, her box arrives,
-   wiggles, and opens, then the reel takes over. Confetti waits for
+   wiggles, and opens — then the reel takes over. Confetti waits for
    the actual result so the payoff isn't spent early. */
 function playGiftMoment(cb) {
   const ov = document.createElement("div");
@@ -1004,7 +1042,6 @@ function playGiftMoment(cb) {
       <span class="gpx-heart c" style="--fly:-15px">♥</span>
       <span class="gpx-heart d" style="--fly:-105px">♥</span>
       <span class="gpx-heart e" style="--fly:90px">♥</span>
-      <span class="gpx-heart f" style="--fly:30px">✨</span>
       <div class="gpx-beam"></div>
       <div class="gpx-lid"><span></span></div>
       <div class="gpx-box"><span></span></div>
@@ -1026,7 +1063,7 @@ function openDailyBox(id) {
   if (!canClaimDailyBox()) {
     openModal(`
       <span class="eyebrow">Free daily box</span>
-      <h2>Back tomorrow ✨</h2>
+      <h2>Back tomorrow</h2>
       <p class="modal-sub">Today's free box is already on your shelf. A fresh one unlocks at midnight, and your daily giveaway entries are still up for grabs.</p>
       <div class="modal-actions">
         <button class="btn btn-gold" onclick="openGiveawayModal()">The giveaway</button>
@@ -1034,14 +1071,17 @@ function openDailyBox(id) {
       </div>`);
     return;
   }
-  const rows = [...kase.drops].sort((a, b) => b.value - a.value).map((d) => {
+  /* most valuable first; each row still shows its exact roll range (computed
+     in roll order), so any pull can be checked by hand */
+  const rows = withRollRanges(kase).sort((a, b) => b.d.value - a.d.value).map(({ d, from, to }) => {
+    const cum = to;
     const rar = RARITY[d.rarity];
     return `<div class="odds-row" style="--rar:${rar.color}">
       <div class="bottle-tile">${productArt(d, 36)}</div>
       <div class="odds-name"><b>${d.house} ${d.name}</b><span>${d.conc} · ${d.size}</span></div>
       <div class="hide-sm"><span class="rarity-chip">${rar.label}</span></div>
       <div class="odds-val">${money(d.value)}<span>market value</span></div>
-      <div class="odds-pct"><b>${d.odds}%</b><div class="odds-bar"><i style="width:${Math.max(d.odds, 1.5)}%"></i></div></div>
+      <div class="odds-pct"><b>${d.odds}%</b><div class="odds-bar"><i style="width:${Math.max(d.odds, 1.5)}%"></i></div><span class="odds-range">rolls ${from.toFixed(2)}–${cum.toFixed(2)}</span></div>
     </div>`;
   }).join("");
   openModal(`
@@ -1090,7 +1130,7 @@ function spinDailyBox(id) {
     dailySpinning = false;
     clearPendingOpen();
     addPull(kase, winner);
-    openResultModal(kase, winner, streakBonus ? { entries: streakBonus } : {});
+    revealResult(kase, winner, streakBonus ? { entries: streakBonus } : {});
     if (window.renderDailyGrid) renderDailyGrid();
   };
   if (revealMode() === "vault") { playVaultPick(kase, doneD); return; }
@@ -1119,45 +1159,108 @@ function devReset(e) {
   location.reload();
 }
 
-/* follow @covet.gg for entries: one-time per platform, granted on click */
-function followEntries(where) {
-  const key = "covet_follow_" + (where === "TikTok" ? "tt" : "ig");
-  const url = where === "TikTok" ? "https://tiktok.com/@covet.gg" : "https://instagram.com/covet.gg";
-  window.open(url, "_blank", "noopener");
-  if (localStorage.getItem(key) === "1") { openGiveawayModal(); return; }
-  localStorage.setItem(key, "1");
-  const n = addEntries(3);
+/* ---------- this week's giveaway: strip + showcase, all from GIVEAWAY in data.js ---------- */
+function giveawayPrize() {
+  const g = GIVEAWAY;
+  const drop = g.dropId ? allDrops().find((d) => d.id === g.dropId) : null;
+  const prize = g.prize || (drop ? `a ${drop.house} ${drop.name}` : gwTerms().thisL + " prize");
+  const value = g.value || (drop ? "$" + (Math.floor(drop.value / 100) * 100).toLocaleString() + "+" : "");
+  const art = g.image
+    ? `<img class="gw-photo" src="${g.image}" alt="" />`
+    : drop ? productArt(drop, 96) : "";
+  return {
+    drop, prize, value, art,
+    prizeCap: prize.charAt(0).toUpperCase() + prize.slice(1),
+    house: g.house || (drop ? drop.house : ""),
+    name: g.name || (drop ? drop.name : prize),
+    tag: g.tag || (drop ? drop.conc : ""),
+    ends: gwTerms().ends,
+    lastWinner: g.lastWinner || "",
+    lastPrize: g.lastPrize || "",
+  };
+}
+
+/* live countdown to the next draw (weekly or monthly, see gwNextDraw in data.js) */
+function tickGiveawayCountdown() {
+  const el = document.getElementById("giveCountdown");
+  if (!el) return;
+  const ms = Math.max(0, gwNextDraw() - new Date());
+  const d = Math.floor(ms / 864e5), h = Math.floor(ms % 864e5 / 36e5), m = Math.floor(ms % 36e5 / 6e4);
+  el.textContent = `${d}d ${h}h ${m}m`;
+}
+
+/* the thin strip under the hero: a teaser that scrolls to the showcase */
+function mountGiveawayStrip(mountId) {
+  const el = document.getElementById(mountId);
+  if (!el) return;
+  const p = giveawayPrize();
+  el.innerHTML = `
+    <span class="pill">${gwTerms().thisP} giveaway</span>
+    <span><b>${p.prizeCap}.</b> Every $1 opened = 1 entry · 5 free entries daily</span>
+    <button class="strip-claim" data-dailycta onclick="event.stopPropagation();claimDaily()">Claim today's 5 free entries</button>`;
   refreshDailyCta();
-  openModal(`
-    <span class="eyebrow">✨ +3 entries</span>
-    <h2>Thanks for the follow ♥</h2>
-    <p class="modal-sub">That's ${n} entries in the draw for ${GIVEAWAY.prize}. Unfollowers get spot checked before the draw, so stay cute.</p>
-    <div class="modal-actions">
-      <button class="btn btn-gold" onclick="openGiveawayModal()">Back to the giveaway</button>
-      <button class="btn btn-quiet" onclick="closeModal()">Done</button>
-    </div>
-  `);
+}
+
+/* the showcase: copy on the left, prize card on the right */
+function mountGiveawayBanner(mountId) {
+  const mount = document.getElementById(mountId);
+  if (!mount) return;
+  const p = giveawayPrize();
+  mount.innerHTML = `
+    <section class="gw-banner" id="gwBanner">
+      <div class="lux-quilt"></div>
+      <div class="gw-glow"></div>
+      <div class="gw-copy">
+        <div class="gw-eyebrows">
+          <span class="lux-eyebrow">${gwTerms().thisP} giveaway</span>
+          <span class="lux-eyebrow gw-eyebrow-free">Free to enter</span>
+        </div>
+        <h2 class="gw-h1"><span class="gw-lead">Win</span><span class="lux-foil gw-prize">${p.prize}.</span></h2>
+        <p class="gw-lede">The real thing, <strong>free to enter.</strong> Authenticated and shipped free to one winner, drawn ${p.ends}. Every entry counts the same.</p>
+        <ul class="gw-ways">
+          <li>Stop by daily <span class="gw-dots"></span> <b>+5 free</b></li>
+          <li>Open any box <span class="gw-dots"></span> <b>$1 = 1 entry</b></li>
+        </ul>
+        <div class="gw-cta-row">
+          <button class="lux-cta" data-dailycta onclick="claimDaily()">Claim today's 5 free entries</button>
+          <button class="lux-more" onclick="openGiveawayModal()">Giveaway details →</button>
+        </div>
+        <p class="gw-entries">you're in with <b id="giveEntries">·</b> entries ♥</p>
+        <p class="gw-fine">winner drawn by random.org · no purchase necessary${p.lastWinner ? `<br>last ${gwTerms().period}: ${p.lastWinner} took ${p.lastPrize} ♥` : ""}</p>
+      </div>
+      <div class="gw-stage" aria-hidden="true">
+        <div class="lux-card gw-card">
+          <span class="lux-rarity">${gwTerms().thisP} prize</span>
+          <div class="lux-art gw-art">${p.art}</div>
+          ${p.house ? `<p class="gw-house">${p.house}</p>` : ""}
+          <h3>${p.name}</h3>
+          ${p.tag ? `<p class="lux-tag">${p.tag}</p>` : ""}
+          <div class="gw-divide"></div>
+          <div class="gw-rv">Resale value</div>
+          <div class="gw-rvv">${p.value}</div>
+        </div>
+        <div class="gw-countdown">Drawn in <em id="giveCountdown">·</em></div>
+      </div>
+    </section>`;
+  refreshDailyCta();
+  tickGiveawayCountdown();
+  setInterval(tickGiveawayCountdown, 30000);
+  if (typeof themeEntryWords === "function") themeEntryWords(); /* holiday word swap runs before this mounts */
 }
 
 function openGiveawayModal() {
-  if (!getAdminSettings().giveaway) { giveawayPausedModal(); return; }
   const claimed = !canClaimDaily();
   openModal(`
-    <span class="eyebrow">This week's giveaway</span>
+    <span class="eyebrow">${gwTerms().thisP} giveaway</span>
     <div class="result-bottle" style="--rar:#e0417c">${bagArt({ s: "flap", b: "#15130f", h: "#d4af6a" }, 58)}</div>
     <h2>A vintage Chanel<br><em style="font-style:italic;font-weight:320">Classic Flap.</em></h2>
-    <p class="modal-sub">Authenticated and ships free. Every $1 you open in boxes earns 1 entry, following us earns 3 each, and 5 free entries wait daily. One winner, drawn ${GIVEAWAY.ends}, decided by random.org.</p>
+    <p class="modal-sub">Authenticated and ships free. Every $1 you open in boxes earns 1 entry, and 5 free entries wait daily. One winner, drawn ${gwTerms().ends}, decided by random.org.</p>
     <div class="value-row" style="--rar:#e0417c">
       <div><small>Your entries</small><b>${getEntries()}</b></div>
-      <div><small>Drawn</small><b style="font-size:16px">${GIVEAWAY.ends}</b></div>
-    </div>
-    <div class="share-row" style="padding-top:6px">
-      <span class="micro" style="width:100%">Follow @covet.gg, +3 entries each:</span>
-      <button class="share-btn" onclick="followEntries('TikTok')">${localStorage.getItem("covet_follow_tt") === "1" ? "✓ Following" : "TikTok"}</button>
-      <button class="share-btn" onclick="followEntries('Instagram')">${localStorage.getItem("covet_follow_ig") === "1" ? "✓ Following" : "Instagram"}</button>
+      <div><small>Drawn</small><b style="font-size:16px">${gwTerms().ends}</b></div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-gold" ${claimed ? "disabled" : ""} onclick="claimDaily()">${claimed ? "Claimed · back tomorrow ✨" : "Claim today's 5 free entries"}</button>
+      <button class="btn btn-gold" ${claimed ? "disabled" : ""} onclick="claimDaily()">${claimed ? "Claimed · back tomorrow" : "Claim today's 5 free entries"}</button>
       <button class="btn btn-quiet" onclick="closeModal()">Close</button>
     </div>
     <p class="micro after-note">No purchase necessary. Every entry counts the same. Full details in the giveaway rules.</p>
@@ -1176,7 +1279,7 @@ function openSellModal(caseId, dropId, uid) {
     <h2>${money(offer)}</h2>
     <p class="modal-sub">We will repurchase your ${drop.house} ${drop.name} right now for ${money(offer)}.${isFree
       ? " Free pulls are made for keeping: shipping is always free. Or take the little credit and chase tomorrow's box."
-      : " The amount credits to your balance instantly, ready for any box or a gift card trade."}</p>
+      : " The amount credits to your balance instantly, ready for your next box."}</p>
     <div class="modal-actions">
       <button class="btn btn-gold" onclick="acceptBuyback('${uid || ""}', ${offer}, ${isFree})">Accept buyback</button>
       <button class="btn btn-quiet" onclick="closeModal()">Keep it</button>
@@ -1197,21 +1300,12 @@ function acceptBuyback(uid, offer, isFree) {
     if (typeof renderInventory === "function") renderInventory();
   }
   closeModal();
-  /* the just-sold moment: highest intent for a gift card trade */
-  if (!isFree) openModal(`
-    <span class="eyebrow">✨ Sold back</span>
-    <h2>${money(offer)} landed</h2>
-    <p class="modal-sub">It's in your balance, ready for your next box.</p>
-    <div class="modal-actions">
-      <a class="btn btn-gold" href="cases.html">Another box ♥</a>
-      <button class="btn btn-quiet" onclick="closeModal()">Done</button>
-    </div>`);
 }
 function shipFromResult() {
-  if (!hasKyc()) { requireKyc(shipFromResult); return; } /* one-time, first shipment */
   const first = getInv()[0];
   const isFree = first && isFreeCaseId(first.caseId);
   if (isFree && freeShipGate()) return;
+  if (!hasKyc()) { requireKyc(shipFromResult); return; } /* KYC: first free box or first shipment, whichever comes first */
   requireAddress(() => {
     const list = getInv();
     if (list.length && list[0].status === "vault") {
@@ -1220,9 +1314,11 @@ function shipFromResult() {
       if (isFree) bumpFreeShips();
     }
     openModal(`
-      <span class="eyebrow">${getAdminSettings().reviewTrades ? "Almost on its way" : "Shipping · free"}</span>
-      <h2>${getAdminSettings().reviewTrades ? "One quick check first" : "On its way soon"}</h2>
-      <p class="modal-sub">${getAdminSettings().reviewTrades ? "Orders get a quick review before they leave. We'll get to work on shipping it, and a tracking number should land in your inbox soon." : "We're working on shipping it now, free of course. A tracking number should land in your inbox soon."} Pieces over $500 go insured with signature on delivery.</p>
+      <span class="eyebrow">Shipping · free</span>
+      <h2>On its way soon</h2>
+      <p class="modal-sub">${first && isUntrackedDrop(first.caseId, first.dropId)
+        ? `Your pull ships free within 5 business days. ${UNTRACKED_NOTE}`
+        : "Your pull ships free with tracking within 5 business days. Pieces over $500 go insured with signature on delivery."}</p>
       <p class="addr-chip">${addrLine()} <a href="#" onclick="openAddressModal(shipFromResultDone);return false">edit</a></p>
       <div class="modal-actions">
         <a class="btn btn-gold" href="inventory.html">View my shelf</a>
@@ -1249,6 +1345,7 @@ function openShippingModal() {
     <div class="ship-rows">
       <div class="ship-row"><b>Free, every order</b><span>Every pull ships free, no minimum, no code. Buyback means never paying to ship something you don't want.</span></div>
       <div class="ship-row"><b>Packed in 2 business days</b><span>Authenticated, sealed, and handed to the carrier within 2 business days. Tracking lands in your inbox the moment it moves.</span></div>
+      <div class="ship-row"><b>Free-box commons go by mail</b><span>Free box commons ship without tracking, usually 7 to 10 business days. Free-box grails ship tracked and insured like everything else.</span></div>
       <div class="ship-row"><b>High-value protection</b><span>Pieces over $500 ship insured for their full value, signature on delivery, always.</span></div>
       <div class="ship-row"><b>Ship on your schedule</b><span>Pulls wait on your shelf as long as you like. Ship one, or batch several into a single box whenever you're ready.</span></div>
       <div class="ship-row"><b>Anywhere in the US</b><span>All 50 states, DC, and Puerto Rico. More regions are on the way; your shelf holds pieces until then.</span></div>
@@ -1262,47 +1359,40 @@ function openShippingModal() {
   `);
 }
 
-/* ---------- wallet modals ---------- */
+/* ---------- wallet + withdraw modals ---------- */
 function openWalletModal() {
   openModal(`
     <span class="eyebrow">Balance</span>
     <h2>${money(getWallet())}</h2>
-    <p class="modal-sub">Your balance holds buyback credits and deposits. Spend it on boxes or trade it for gift cards.${getLocked() > 0
+    <p class="modal-sub">Your balance holds buyback credits and deposits. Spend it on any box.${getLocked() > 0
       ? ` <b style="color:var(--ink)">${money(getLocked())} is free-box credit</b>: it spends on any box, and opening frees it up.`
       : ""}</p>
     <div class="modal-actions">
       <button class="btn btn-gold" onclick="openAddFundsModal()">Add funds</button>
-      <a class="btn btn-ghost" href="inventory.html">My shelf</a>
     </div>
   `);
 }
-function depositsPausedModal() {
-  openModal(`
-    <span class="eyebrow">Top-ups</span>
-    <h2>Paused for a moment</h2>
-    <p class="modal-sub">Card top-ups are briefly paused, love. Your balance, boxes, and daily free box are all still open, and everything is back shortly.</p>
-    <div class="modal-actions"><a class="btn btn-gold" href="cases.html">Browse boxes</a><button class="btn btn-quiet" onclick="closeModal()">Okay</button></div>
-  `);
-}
+const TOPUP_MIN = 10, TOPUP_MAX = 1000; /* per top-up */
 function openAddFundsModal() {
-  if (!getAdminSettings().cardDeposits) { depositsPausedModal(); return; }
   openModal(`
     <span class="eyebrow">Add funds · step 1 of 2</span>
     <h2>How much?</h2>
-    <p class="modal-sub">Funds are available instantly, and unspent deposits are always refundable.</p>
+    <p class="modal-sub">Funds are available instantly and spend on any box.</p>
     <div class="modal-actions" style="flex-wrap:wrap">
-      ${[10, 25, 50, 100].map((a) => `<button class="btn btn-ghost" style="min-width:100px;flex:1 1 40%" onclick="openPayMethodModal(${a})">$${a}</button>`).join("")}
+      ${[25, 50, 100].map((a) => `<button class="btn btn-ghost" style="min-width:90px;flex:1 1 28%" onclick="openPayMethodModal(${a})">$${a}</button>`).join("")}
     </div>
     <div class="field" style="text-align:left;margin-top:18px">
-      <label>Or a custom amount · $10 minimum</label>
-      <input id="tuAmount" type="number" min="10" placeholder="75" />
+      <label>Or a custom amount · $${TOPUP_MIN} to $${TOPUP_MAX.toLocaleString()}</label>
+      <input id="tuAmount" type="number" min="${TOPUP_MIN}" max="${TOPUP_MAX}" placeholder="75" />
     </div>
+    <p class="micro" id="tuErr" style="display:none;color:var(--gold);margin-top:-6px;margin-bottom:12px">Top-ups run from $${TOPUP_MIN} to $${TOPUP_MAX.toLocaleString()}.</p>
     <button class="btn btn-gold" style="width:100%" onclick="openPayMethodModal(parseFloat(document.getElementById('tuAmount').value||0))">Continue</button>
   `);
 }
 function openPayMethodModal(amount) {
-  if (!amount || amount < 10) {
-    openAddFundsModal();
+  if (!amount || amount < TOPUP_MIN || amount > TOPUP_MAX) {
+    const err = document.getElementById("tuErr");
+    if (err) err.style.display = ""; else openAddFundsModal();
     return;
   }
   openModal(`
@@ -1321,7 +1411,7 @@ function confirmAddFunds(amount, method) {
   localStorage.setItem(LS_DEPOSITED, "1");
   openModal(`
     <span class="eyebrow">Done</span>
-    <h2>${money(amount)} added ✨</h2>
+    <h2>${money(amount)} added</h2>
     <p class="modal-sub">Charged to ${method || "your card"}. Your balance is now ${money(getWallet())}. Go find something you love.</p>
     <div class="modal-actions">
       <a class="btn btn-gold" href="cases.html">Browse boxes</a>
@@ -1329,39 +1419,126 @@ function confirmAddFunds(amount, method) {
     </div>
   `);
 }
-function openStockoutModal(itemName, value, price, subIds) {
-  const subs = (subIds || []).map((id) => allDrops().find((d) => d.id === id)).filter(Boolean);
+/* NOT IN THE MVP: bank transfers are out of scope and nothing on the site
+   opens these screens. Kept only for a later phase. */
+function openWithdrawModal() {
+  if (hasDeposited() && !hasKyc()) { requireKyc(openWithdrawModal); return; }
+  if (!hasDeposited()) {
+    openModal(`
+      <span class="eyebrow">Transfer to bank</span>
+      <h2>One step first ♥</h2>
+      <p class="modal-sub">Bank transfers unlock after your first purchase. Add funds once and your balance is yours to move any time, or keep it growing with your free daily box.</p>
+      <div class="modal-actions">
+        <button class="btn btn-gold" onclick="openAddFundsModal()">Add funds</button>
+        <button class="btn btn-quiet" onclick="closeModal()">Later</button>
+      </div>
+      <p class="micro after-note">Standard for every account: it keeps the giveaway and free boxes fair for everyone.</p>
+    `);
+    return;
+  }
+  const bal = getWallet();
+  const avail = Math.max(0, bal - getLocked());
   openModal(`
-    <span class="eyebrow">About your ${itemName}</span>
-    <h2>It sold out before<br>we could pack it 💔</h2>
-    <p class="modal-sub">Our fault, your pick. Choose a piece of equal or greater value, or take the full ${money(value)} as credit right now.</p>
-    <div class="sub-row">
-      ${subs.map((d) => `
-        <button class="sub-card" onclick="resolveStockout('sub','${d.house} ${d.name}',${value})">
-          ${productArt(d, 44)}
-          <b>${d.house} ${d.name}</b>
-          <span>${money(d.value)} · in stock</span>
-        </button>`).join("")}
+    <span class="eyebrow">Transfer to bank</span>
+    <h2>Transfer your balance</h2>
+    <p class="modal-sub">Funds return to your original payment method within 3 to 5 business days. Transfer fees may apply. Transfers start at $20.${getLocked() > 0
+      ? ` ${money(getLocked())} of your balance is free-box credit: spend it on any box and it counts toward what you can transfer.`
+      : ""}</p>
+    <div class="field" style="text-align:left">
+      <label>Amount · transferable ${money(avail)} · $20 minimum</label>
+      <input id="wdAmount" type="number" min="20" max="${avail}" value="${Math.floor(avail)}" />
+    </div>
+    <div class="field" style="text-align:left">
+      <label>Destination</label>
+      <select>${getMethods().map((m) => `<option>${m}</option>`).join("")}</select>
+      <button class="btn-reset" style="margin-top:8px;font-size:11.5px;font-weight:700;color:var(--gold);cursor:pointer;background:none;border:0;padding:0" onclick="addMethodModal()">+ Add new method</button>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-gold" onclick="resolveStockout('credit','',${value})">Take ${money(value)} credit · instant</button>
+      <button class="btn btn-gold" onclick="confirmWithdraw()">Transfer to bank</button>
+      <button class="btn btn-quiet" onclick="closeModal()">Cancel</button>
     </div>
-    <p class="micro after-note">Prefer the ${money(price)} you paid back on your card? <a href="#" style="color:var(--gold)" onclick="resolveStockout('refund','',${price});return false">Refund it</a> · No pick within 5 days and the credit applies automatically.</p>
   `);
 }
-function resolveStockout(kind, subName, amt) {
-  if (kind === "credit") setWallet(getWallet() + amt);
+function confirmWithdraw() {
+  const amt = Math.min(parseFloat(document.getElementById("wdAmount").value || 0), Math.max(0, getWallet() - getLocked()));
+  if (amt < 20) {
+    openModal(`
+      <span class="eyebrow">Almost there</span>
+      <h2>Transfers start at $20</h2>
+      <p class="modal-sub">Your balance is ${money(getWallet())}. Keep it growing with your daily free box, or put it toward your next open.</p>
+      <div class="modal-actions">
+        <a class="btn btn-gold" href="cases.html">Browse boxes</a>
+        <button class="btn btn-quiet" onclick="closeModal()">Okay</button>
+      </div>`);
+    return;
+  }
+  setWallet(getWallet() - amt);
   openModal(`
-    <span class="eyebrow">${kind === "sub" ? "On its way" : kind === "credit" ? "✨ Credited" : "Refund requested"}</span>
-    <h2>${kind === "sub" ? "Good choice ♥" : kind === "credit" ? money(amt) + " landed" : "Back to your card"}</h2>
-    <p class="modal-sub">${kind === "sub"
-      ? `Your ${subName} ships within 2 business days, tracking to your inbox.`
-      : kind === "credit"
-        ? `Your balance is now ${money(getWallet())}, ready for the next box. We're sorry about this one.`
-        : `${money(amt)} returns to your original payment method within 3 to 5 business days.`}</p>
+    <span class="eyebrow">Requested</span>
+    <h2>${money(amt)} on its way</h2>
+    <p class="modal-sub">Transfer confirmed. Expect it on your Visa •••• 4127 within 3 to 5 business days. Remaining balance: ${money(getWallet())}.</p>
     <div class="modal-actions">
       <button class="btn btn-gold" onclick="closeModal()">Done</button>
     </div>
+  `);
+}
+
+/* ---------- stock-out resolution: lives on the shelf card, no popup ----------
+   Ops marks a pull unfulfillable (plus an email): the shelf item flips to
+   "Needs your pick" with the choices inline: a substitute of equal or greater
+   value, the full value as credit, or the box price back on her card. The
+   refund link is legally required (FTC Mail Order Rule) and deliberately
+   quiet. No pick within 5 days and the full-value credit applies. */
+function markStockout(uid, subIds, price) {
+  const list = getInv();
+  const it = list.find((i) => i.uid === uid);
+  if (!it) return;
+  it.status = "stockout";
+  it.stockout = { subs: subIds || [], price, by: new Date(Date.now() + 5 * 864e5).toISOString().slice(0, 10) };
+  setInv(list);
+}
+function resolveStockout(uid, kind, subId) {
+  const list = getInv();
+  const it = list.find((i) => i.uid === uid);
+  if (!it || it.status !== "stockout") return;
+  const drop = allDrops().find((d) => d.id === it.dropId);
+  if (kind === "sub") {
+    it.subFor = drop ? `${drop.house} ${drop.name}` : "";
+    it.dropId = subId;
+    it.status = "shipping";
+  } else if (kind === "credit") {
+    it.creditAmt = drop ? drop.value : 0;
+    setWallet(getWallet() + it.creditAmt);
+    it.status = "credited";
+  } else {
+    it.status = "refunded";
+  }
+  setInv(list);
+  if (typeof renderInventory === "function") renderInventory();
+}
+
+/* ---------- creator W-9: required before payouts cross $600/yr ---------- */
+function hasW9() { return localStorage.getItem("covet_w9_ok") === "1"; }
+function openW9Modal(next) {
+  openModal(`
+    <span class="eyebrow">One tax form, one time</span>
+    <h2>The IRS says hi ♥</h2>
+    <p class="modal-sub">Your creator earnings are crossing $600 this year, which means US law needs a W-9 on file before we can keep paying you. Two minutes with our tax partner, once. Your info goes to the tax partner, not to Covet's servers.</p>
+    <div class="modal-actions">
+      <button class="btn btn-gold" onclick="demoW9Run(${next ? "window._w9Next" : "null"})">Complete my W-9 · 2 min</button>
+      <button class="btn btn-quiet" onclick="closeModal()">Later (payouts pause at $600)</button>
+    </div>
+    <p class="micro after-note">Earnings keep accruing either way. Only the payout waits for the form.</p>
+  `);
+  if (next) window._w9Next = next;
+}
+function demoW9Run(next) {
+  localStorage.setItem("covet_w9_ok", "1");
+  openModal(`
+    <span class="eyebrow">All set</span>
+    <h2>W-9 on file</h2>
+    <p class="modal-sub">You're clear for payouts at any amount.</p>
+    <div class="modal-actions"><button class="btn btn-gold" onclick="closeModal();(${next ? "window._w9Next" : "(()=>{})"})?.()">Done</button></div>
   `);
 }
 
@@ -1370,7 +1547,7 @@ function openGiveawayWinModal(prize, value, credit) {
   confettiBurst(["#eeb020", "#ffb3c9", "#e02d56", "#ffffff"]);
   openModal(`
     <div class="result-glow" style="--rar:#eeb020"></div>
-    <span class="eyebrow" style="color:#b07c1e">✨ This week's giveaway</span>
+    <span class="eyebrow" style="color:#b07c1e">${gwTerms().thisP} giveaway</span>
     <h2>It's you.<br><em style="font-style:italic;font-weight:320">You won ♥</em></h2>
     <p class="modal-sub">The <b style="color:var(--ink)">${prize}</b>, market value ${money(value)}, is yours. Ship it free and insured, or take ${money(credit)} in Covet credit instead, yours the second you tap.</p>
     <div class="modal-actions">
@@ -1383,7 +1560,7 @@ function openGiveawayWinModal(prize, value, credit) {
 function giveawayWinShip(prize) {
   requireAddress(() => {
     openModal(`
-      <span class="eyebrow">✨ On its way</span>
+      <span class="eyebrow">On its way</span>
       <h2>Go film the unboxing ♥</h2>
       <p class="modal-sub">Your ${prize} ships insured with signature on delivery. Tracking lands in your inbox, and tagging @covet.gg when it arrives would make our whole month.</p>
       <p class="addr-chip">${addrLine()}</p>
@@ -1395,9 +1572,9 @@ function giveawayWinCredit(credit) {
   setWallet(getWallet() + credit);
   confettiBurst();
   openModal(`
-    <span class="eyebrow">✨ Credited</span>
+    <span class="eyebrow">Credited</span>
     <h2>${money(credit)} landed</h2>
-    <p class="modal-sub">Your balance is now ${money(getWallet())}. Spend it on any box, or trade it for gift cards. Congratulations, love.</p>
+    <p class="modal-sub">Your balance is now ${money(getWallet())}. Spend it on any box. Congratulations, love.</p>
     <div class="modal-actions">
       <a class="btn btn-gold" href="cases.html">Put it to work</a>
       <button class="btn btn-quiet" onclick="closeModal()">Done</button>
@@ -1440,13 +1617,13 @@ function openAuthModal(mode = "in") {
     <span class="eyebrow">${isIn ? "Welcome back" : "Join Covet"}</span>
     <h2>${isIn ? "Hi again, love ♥" : "Let's get you in ♥"}</h2>
     <div class="addr-form" style="margin-bottom:16px">
-      ${isIn ? "" : `<div class="field"><label>First name</label><input placeholder="Ava" /></div>`}
+      ${isIn ? "" : `<div class="field"><label>First name</label><input placeholder="Riley" /></div>`}
       <div class="field"><label>Email</label><input type="email" placeholder="you@email.com" /></div>
       <div class="field"><label>Password</label><input type="password" placeholder="••••••••" /></div>
-      ${isIn ? "" : `<div class="field"><label>Creator code · optional</label><input id="auCode" placeholder="AVA5" maxlength="12" style="text-transform:uppercase" oninput="document.getElementById('auCodeHint').style.display = this.value.trim() ? '' : 'none'" /></div>
+      ${isIn ? "" : `<div class="field"><label>Creator code · optional</label><input id="auCode" placeholder="RILEY5" maxlength="12" style="text-transform:uppercase" oninput="document.getElementById('auCodeHint').style.display = this.value.trim() ? '' : 'none'" /></div>
       <p class="micro" id="auCodeHint" style="display:none;color:var(--gold);text-align:left;margin:-6px 0 4px">♥ $5 off your first box over $25, applied automatically. Your girl gets credit on every box you ever open.</p>`}
     </div>
-    <button class="btn btn-gold" style="width:100%" onclick="${isIn ? "authDone()" : "openOtpModal()"}">${isIn ? "Sign in" : "Create my account"}</button>
+    <button class="btn btn-gold" style="width:100%" onclick="authDone()">${isIn ? "Sign in" : "Create my account"}</button>
     <div class="auth-or"><span>or</span></div>
     <div class="modal-actions" style="flex-direction:column;margin-top:0">
       <button class="btn btn-ghost" style="width:100%" onclick="authDone()"> Continue with Apple</button>
@@ -1457,24 +1634,6 @@ function openAuthModal(mode = "in") {
       ? `<a href="#" style="color:var(--gold)" onclick="openResetModal();return false">Forgot your password? Reset it here</a>`
       : `By joining you confirm you are 18+ and agree to the Terms of Service and Privacy Policy.`}</p>
   `);
-}
-function openOtpModal() {
-  /* demo stand-in for the signup email OTP; any 4 digits work, hint shows one */
-  openModal(`
-    <span class="eyebrow">One more step</span>
-    <h2>Check your email ♥</h2>
-    <p class="modal-sub">We sent a 4 digit code to your email. Enter it here and you're in.</p>
-    <div class="field" style="text-align:left"><label>Your code</label>
-      <input id="otpCode" inputmode="numeric" maxlength="4" placeholder="••••" style="letter-spacing:0.5em;text-align:center;font-size:20px" />
-    </div>
-    <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="otpDone()">Verify</button>
-    <p class="micro after-note">Demo: any 4 digits work, try 1234. <a href="#" style="color:var(--gold)" onclick="openOtpModal();return false">Resend code</a></p>
-  `);
-}
-function otpDone() {
-  const v = (document.getElementById("otpCode").value || "").trim();
-  if (!/^\d{4}$/.test(v)) { document.getElementById("otpCode").focus(); return; }
-  authDone();
 }
 function openResetModal() {
   openModal(`
@@ -1494,7 +1653,7 @@ function sendReset() {
   const email = (document.getElementById("rsEmail").value || "").trim();
   if (!email.includes("@")) { document.getElementById("rsEmail").focus(); return; }
   openModal(`
-    <span class="eyebrow">✨ Check your inbox</span>
+    <span class="eyebrow">Check your inbox</span>
     <h2>Link sent</h2>
     <p class="modal-sub">If an account exists for ${email}, a reset link is on its way. Check spam if it hides. Still stuck? Live support has you.</p>
     <div class="modal-actions">
@@ -1503,27 +1662,10 @@ function sendReset() {
   `);
 }
 
-/* storefront obeys the admin switches on every page load */
-function applyAdminSettings() {
-  const cfg = getAdminSettings();
-  if (!cfg.giveaway) {
-    const pb = document.querySelector(".promo-banner");
-    if (pb) {
-      pb.innerHTML = `<span class="pill">This week's giveaway</span><span><b>Back soon ✨</b> A new prize is on its way.</span>`;
-      pb.onclick = null;
-      pb.style.cursor = "default";
-    }
-    document.querySelectorAll("[data-dailycta]").forEach((b) => { b.textContent = "Back soon ✨"; b.disabled = true; });
-  }
-  if (!cfg.giftCards) {
-    const gs = document.getElementById("gcShelfBtn");
-    if (gs) gs.style.display = "none";
-  }
-}
-
 /* ---------- age / state gate ---------- */
 /* states we don't serve, per the legal plan (gambling-statute readings) */
 const GATE_BLOCKED = ["Washington", "Idaho", "Hawaii", "Kentucky", "South Carolina"];
+const GATE_AGE_19 = ["Alabama", "Nebraska"];
 function openGateModal(force = false) {
   const states = ["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming","Washington DC","Puerto Rico","Outside the US"];
   openModal(`
@@ -1539,7 +1681,7 @@ function openGateModal(force = false) {
     </div>
     <div class="gate-row">
       <input type="checkbox" id="gateAge" onchange="gateCheck()" />
-      <label for="gateAge">I am 18 or older (19+ in AL and NE), and I am physically located in the state selected above, where randomized retail products are permitted.</label>
+      <label for="gateAge">I am <span id="gateAgeNum">18</span> or older, and I am physically located in the state selected above, where randomized retail products are permitted.</label>
     </div>
     <div class="gate-row">
       <input type="checkbox" id="gateTos" onchange="gateCheck()" />
@@ -1555,6 +1697,8 @@ function openGateModal(force = false) {
 function gateCheck() {
   const st = document.getElementById("gateState").value;
   const blocked = GATE_BLOCKED.includes(st) || st === "Outside the US";
+  /* age of majority is 19 in Alabama and Nebraska; the attestation follows the state */
+  document.getElementById("gateAgeNum").textContent = GATE_AGE_19.includes(st) ? "19" : "18";
   document.getElementById("gateBlockedMsg").style.display = blocked ? "" : "none";
   document.getElementById("gateEnter").disabled =
     blocked || !st ||
@@ -1596,7 +1740,6 @@ document.addEventListener("DOMContentLoaded", (e) => {
     }
   } catch {}
   renderShell(document.body.dataset.page);
-  applyAdminSettings();
   applyHoliday();
   renderTicker();
   refreshWishStats();
@@ -1628,7 +1771,7 @@ function openSupportModal() {
   openModal(`
     <span class="eyebrow"><span class="fs-dot" style="display:inline-block;vertical-align:middle;margin-right:6px"></span> Live support</span>
     <h2>We're here ♥</h2>
-    <p class="modal-sub">A real human, usually within a few hours and often minutes. Shipping, buybacks, gift cards, anything.</p>
+    <p class="modal-sub">A real human, usually within a few hours and often minutes. Shipping, buybacks, your balance, anything.</p>
     <div class="sup-chat" id="supChat">
       <div class="sup-msg them">hi love! what can we help with today? ♥</div>
     </div>
@@ -1654,3 +1797,4 @@ function sendSupportMsg() {
   }, 900);
 }
 
+/* ---------- rotating box spotlight: the lux banner ---------- */

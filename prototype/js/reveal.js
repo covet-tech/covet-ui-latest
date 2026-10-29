@@ -31,12 +31,9 @@ function renderCasePage() {
   const anon = document.getElementById("anonChk");
   if (anon) anon.checked = localStorage.getItem("covet_anon") === "1";
   const btn = document.getElementById("openBtn");
-  if (kase.off) {
-    btn.disabled = true;
-    btn.innerHTML = "Back soon ✨";
-  } else if (kase.free) {
+  if (kase.free) {
     const claimed = !canClaimDailyBox();
-    btn.innerHTML = claimed ? "Back tomorrow ✨" : "Unbox free today";
+    btn.innerHTML = claimed ? "Back tomorrow" : "Unbox free today";
     btn.disabled = claimed;
   } else {
     document.getElementById("openPrice").textContent = money(kase.price);
@@ -47,14 +44,16 @@ function renderCasePage() {
       <span></span><span>Piece</span><span class="hide-sm">Rarity</span>
       <span>Value</span><span class="odds-pct">Odds</span>
     </div>` +
-    [...kase.drops].sort((a, b) => b.value - a.value).map((d) => {
+    /* most valuable first; each row shows its exact roll range (computed in
+       roll order), so anyone can map a verified roll onto it by hand */
+    withRollRanges(kase).sort((a, b) => b.d.value - a.d.value).map(({ d, from, to }) => {
       const rar = RARITY[d.rarity];
       return `<div class="odds-row" style="--rar:${rar.color}">
         <div class="bottle-tile">${productArt(d, 36)}</div>
         <div class="odds-name"><b>${d.house} ${d.name} ${kase.custom ? "" : heartBtn(d.id)}${d.paused ? ' <span class="restock-chip">restocking</span>' : ""}</b><span>${d.conc} · ${d.size}</span></div>
         <div class="hide-sm"><span class="rarity-chip">${rar.label}</span></div>
         <div class="odds-val">${money(d.value)}<span>market value</span></div>
-        <div class="odds-pct"><b>${d.odds}%</b><div class="odds-bar"><i style="width:${Math.max(d.odds, 1.5)}%"></i></div></div>
+        <div class="odds-pct"><b>${d.odds}%</b><div class="odds-bar"><i style="width:${Math.max(d.odds, 1.5)}%"></i></div><span class="odds-range">rolls ${from.toFixed(2)}–${to.toFixed(2)}</span></div>
       </div>`;
     }).join("");
 
@@ -81,22 +80,13 @@ function buildReel(winner) {
 
 function openCase() {
   if (spinning) return;
-  if (kase.off) {
-    openModal(`
-      <span class="eyebrow">${kase.short || kase.name}</span>
-      <h2>This box is resting ✨</h2>
-      <p class="modal-sub">It's being restocked and comes back soon. Every other box is wide open in the meantime.</p>
-      <div class="modal-actions"><a class="btn btn-gold" href="cases.html">Browse boxes</a><button class="btn btn-quiet" onclick="closeModal()">Okay</button></div>
-    `);
-    return;
-  }
   closeModal();
   if (kase.free && canClaimDailyBox() && !hasKyc()) { requireKyc(openCase); return; }
   if (kase.free && typeof freeCapReached === "function" && freeCapReached()) { openFreeCapModal(); return; }
   if (kase.free && !canClaimDailyBox()) {
     openModal(`
       <span class="eyebrow">Free box</span>
-      <h2>Back tomorrow ✨</h2>
+      <h2>Back tomorrow</h2>
       <p class="modal-sub">You've opened today's free box. A fresh one unlocks at midnight, and there are paid boxes with much better pulls in the meantime.</p>
       <div class="modal-actions">
         <a class="btn btn-gold" href="cases.html">Browse the boxes</a>
@@ -147,9 +137,9 @@ function openCase() {
     addPull(kase, winner);
     const earned = kase.free ? 0 : Math.floor(kase.price);
     if (earned) addEntries(earned);
-    openResultModal(kase, winner, kase.free ? {} : { onAgain: "openCase()", entries: earned });
+    revealResult(kase, winner, kase.free ? {} : { onAgain: "openCase()", entries: earned });
     if (kase.free) {
-      btn.innerHTML = "Back tomorrow ✨";
+      btn.innerHTML = "Back tomorrow";
       btn.disabled = true;
     } else {
       btn.disabled = false;
@@ -183,7 +173,6 @@ function openCase() {
 /* playGiftMoment lives in app.js (shared with the daily box popup) */
 
 function payAndOpen(need, extra = 0) {
-  if (!getAdminSettings().cardDeposits) { depositsPausedModal(); return; }
   /* payment buys a SEALED box entitlement; nothing rolls until she says so.
      If she saves it, it waits on her shelf, openable without paying again. */
   setWallet(getWallet() + need + extra);
@@ -192,7 +181,7 @@ function payAndOpen(need, extra = 0) {
   localStorage.setItem("covet_paid_box", JSON.stringify({ id: kase.id, price: kase.price, ts: Date.now() }));
   closeModal();
   openModal(`
-    <span class="eyebrow">✨ Paid · sealed</span>
+    <span class="eyebrow">Paid · sealed</span>
     <h2>It's yours. Still sealed.</h2>
     <p class="modal-sub">Your <b style="color:var(--ink)">${kase.name}</b> is bought and wrapped. Open it right now, or save it; it waits on your shelf, and nothing is revealed until you say so.</p>
     <div class="modal-actions" style="flex-direction:column">

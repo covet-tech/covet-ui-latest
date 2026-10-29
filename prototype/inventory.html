@@ -4,11 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Shelf · Covet</title>
-  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=2" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=310" />
+  <link rel="stylesheet" href="css/style.css?v=285" />
 </head>
 <body data-page="inventory">
   <header class="site-head"></header>
@@ -26,9 +27,7 @@
       <div class="wallet-band">
         <div class="amount"><small>Balance</small><span data-wallet></span></div>
         <div class="actions">
-          <button class="btn btn-gold" onclick="setWallet(getWallet()+100);">Add $100 (demo)</button>
-          <a class="btn btn-ghost" id="gcShelfBtn" style="background:transparent;color:#fff;border-color:rgba(255,255,255,0.3)" href="giftcards.html">Trade for gift cards ✨</a>
-        </div>
+          <button class="btn btn-gold" onclick="setWallet(getWallet()+100);">Add $100 (demo)</button>        </div>
       </div>
       <label class="micro" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:18px;cursor:pointer">
         <input type="checkbox" id="hideDone" style="accent-color:var(--gold)" onchange="localStorage.setItem('covet_hide_done', this.checked ? '1' : '0'); renderInventory()" />
@@ -41,9 +40,9 @@
 
   <footer class="site-foot"></footer>
 
-  <script src="js/data.js?v=310"></script>
-  <script src="js/art.js?v=310"></script>
-  <script src="js/app.js?v=310"></script>
-  <script src="js/inventory.js?v=310"></script>
+  <script src="js/data.js?v=290"></script>
+  <script src="js/art.js?v=281"></script>
+  <script src="js/app.js?v=293"></script>
+  <script src="js/inventory.js?v=281"></script>
 </body>
 </html>

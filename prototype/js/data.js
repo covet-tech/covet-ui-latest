@@ -17,13 +17,13 @@
    ------------------------------------------------------------
    All data is mock. Odds per box sum to exactly 100.
    PRODUCTION PRICING RULES (verified against real gray-market
-   prices Aug 2026 via FragranceNet/LaBelle/Jomashop/Fashionphile):
+   prices Aug 2026 — FragranceNet/LaBelle/Jomashop/Fashionphile):
      · real sourcing costs vs displayed retail value:
        designer fragrance ≈ 55-70% · niche (PdM etc) ≈ 65%
-       hype (MFK/BR540) ≈ 85-95%, treat like DTC: low odds only
+       hype (MFK/BR540) ≈ 85-95% — treat like DTC: low odds only
        pre-owned bags/watches ≈ 85-95% of resale ask
        beauty ≈ 55% · charms/phone ≈ 30-45% · home ≈ 50%
-     · target EV(retail) ≈ 0.95-1.05× price (NOT higher, the
+     · target EV(retail) ≈ 0.95-1.05× price (NOT higher — the
        old 50%-wholesale assumption was too optimistic)
      · production buyback 60-65% of value, set per item
      · commons ≥ 60% of pulls · hype/dtc/manual ≤ 3% odds each,
@@ -41,10 +41,10 @@
    ============================================================ */
 
 /* PRICING PASS · Aug 18 2026: every item value = assumed US consumer retail
-   (brand site / Sephora, no discount) + $10 flat shipping, so the
+   (brand site / Sephora, no discount) + $10 flat shipping, per Riley, so the
    demo math reflects worst-case manual fulfillment. Retail figures are
-   unverified placeholders; production replaces them with live supplier
-   costs through the admin cost fields. Box prices + odds were re-solved after repricing
+   Claude's best knowledge, NOT verified — Riley is supplying real prices;
+   see pricing-sheet.csv. Box prices + odds were re-solved after repricing
    (credit-back EV target 0.85, band 0.74-0.95). */
 let BUYBACK_RATE = 0.8; /* paid-box offer as % of OUR SOURCING COST, not shown
    value. Ops dial in admin overrides it; production uses real supplier costs,
@@ -56,11 +56,14 @@ try {
   }
 } catch {}
 
+/* rarity tiers, lowest to highest. The keys are internal ids (kept so saved
+   boxes keep working); customers only ever see the label and color.
+     signature → Sweet · reserve → Reserve · archive → Coveted · grail → Grail */
 const RARITY = {
-  signature: { label: "Signature", color: "#9b8fa8" },
-  reserve:   { label: "Reserve",   color: "#6c8de8" },
-  archive:   { label: "Archive",   color: "#dfa112" },
-  grail:     { label: "Grail",     color: "#e0417c" },
+  signature: { label: "Sweet",   color: "#e8a2b8" },
+  reserve:   { label: "Reserve", color: "#d9a43c" },
+  archive:   { label: "Coveted", color: "#e02d56" },
+  grail:     { label: "Grail",   color: "#9b6cff" },
 };
 
 const CASES = [
@@ -388,7 +391,7 @@ const CASES = [
       { id: "labubu",     house: "Pop Mart",          name: "Labubu Macaron Charm", conc: "Blind box",    size: "sealed",    value: 32,  odds: 0.1,   rarity: "reserve",   kind: "charm" },
       { id: "susancharm", house: "Susan Alexandra",   name: "Beaded Bag Charm",     conc: "Charm",        size: "handmade",  value: 48,  odds: 0.1,   rarity: "reserve",   kind: "charm" },
       { id: "coachcharm", house: "Coach",             name: "Leather Bag Charm",    conc: "Charm",        size: "with box",  value: 58,  odds: 0.1,   rarity: "archive",   kind: "charm" },
-      { id: "labuburare", dtc: true, house: "Pop Mart",          name: "Labubu Secret Edition",conc: "Blind box",    size: "sealed",    value: 130, odds: 0.1, rarity: "archive",   kind: "charm", stock: 2 },
+      { id: "labuburare", dtc: true, house: "Pop Mart",          name: "Labubu Secret Edition",conc: "Blind box",    size: "sealed",    value: 130, odds: 0.1, rarity: "archive",   kind: "charm" },
       { id: "vworb",      house: "Vivienne Westwood", name: "Mini Orb Pendant",     conc: "Necklace",     size: "with box",  value: 160, odds: 0.1, rarity: "grail",     kind: "charm" },
     ],
   },
@@ -694,7 +697,7 @@ const CASES = [
       { id: "chance20", house: "Chanel", name: "Chance Eau Tendre", conc: "EDT", size: "20ml twist", value: 48, odds: 16.6, rarity: "reserve" },
       { id: "hypnotic50", house: "Dior", name: "Hypnotic Poison", conc: "EDT", size: "50ml", value: 109, odds: 5.8, rarity: "reserve" },
       { id: "cocomad", house: "Chanel", name: "Coco Mademoiselle", conc: "EDP", size: "35ml", value: 120, odds: 8.3, rarity: "signature" },
-      { id: "coconoir", house: "Chanel", name: "Coco Noir", conc: "EDP", size: "50ml", value: 145, odds: 2, rarity: "signature", stock: 3 },
+      { id: "coconoir", house: "Chanel", name: "Coco Noir", conc: "EDP", size: "50ml", value: 145, odds: 2, rarity: "signature" },
       { id: "missdior50", house: "Dior", name: "Miss Dior", conc: "EDP", size: "50ml", value: 142, odds: 4.1, rarity: "reserve" },
       { id: "gabrielle", house: "Chanel", name: "Gabrielle Essence", conc: "EDP", size: "50ml", value: 145, odds: 8.1, rarity: "signature" },
       { id: "poal50", house: "Frederic Malle", name: "Portrait of a Lady", conc: "EDP", size: "50ml", value: 305, odds: 0.5, rarity: "archive" },
@@ -903,13 +906,12 @@ const CASES = [
 ];
 
 /* ---------- daily free boxes ----------
-   One free open per day. Commons are cute Amazon-sourced fillers
-   (~$5 landed) that photograph well but nobody NEEDS shipped, and
-   their buyback (bb, explicit dollars) is pennies-tiny: the smart
-   move is always trading for credit, which sits under the $20
-   transfer minimum and nudges a deposit. Worst case a common costs
-   one ~$5 manual fulfillment. The rare tail keeps it exciting; the
-   luxury-supplier grails almost never land. */
+   One free open per day. Two items per box: one common (a candle or
+   incense, ~$5 landed) and one grail (a bag or a fragrance) that
+   almost never lands. Commons ship by plain mail with no tracking
+   (see isUntrackedDrop) and their buyback (bb, explicit dollars) is
+   pennies-tiny: the smart move is always trading for credit, which
+   sits under the $20 transfer minimum and nudges a deposit. */
 const FREE_BOXES = [
   {
     id: "dailyscent",
@@ -922,10 +924,7 @@ const FREE_BOXES = [
     tint: "#8fa7ef",
     blurb: "A little something fragrant, free, every single day.",
     drops: [
-      { id: "vialtrio",   house: "Covet",              name: "Designer Vial Trio",  conc: "3 sample vials", size: "0.7ml each", value: 14,   odds: 59.3, rarity: "signature", bb: 1 },
-      { id: "scentstick", house: "Covet",              name: "Solid Scent Stick",   conc: "Solid perfume",  size: "4g",         value: 17,   odds: 30,  rarity: "signature", bb: 1 },
-      { id: "libre10",    house: "Yves Saint Laurent", name: "Libre",               conc: "EDP", size: "10ml travel",           value: 22,  odds: 9,   rarity: "reserve", bb: 6 },
-      { id: "aventus10",  house: "Creed",              name: "Aventus",             conc: "EDP", size: "10ml travel",           value: 70,  odds: 1.5, rarity: "archive" },
+      { id: "tealights",  house: "Covet",              name: "Rosewater Tealight Set", conc: "Candles", size: "4 tealights", value: 14,  odds: 99.8, rarity: "signature", kind: "home", bb: 0.75 },
       { id: "br540_35",   house: "Maison Francis Kurkdjian", name: "Baccarat Rouge 540", conc: "EDP", size: "35ml",            value: 245, odds: 0.2, rarity: "grail" },
     ],
   },
@@ -940,10 +939,7 @@ const FREE_BOXES = [
     tint: "#c9a7e0",
     blurb: "A little ritual, a little luck, free every single day.",
     drops: [
-      { id: "incense",    house: "Covet",     name: "Cherry Incense Ritual Sticks", conc: "Incense",   size: "10 sticks",   value: 12,   odds: 58,  rarity: "signature", kind: "home", bb: 0.5 },
-      { id: "palosanto",  house: "Covet",     name: "Palo Santo Bundle",            conc: "Incense",   size: "3 sticks",    value: 9,    odds: 30,  rarity: "signature", kind: "home", bb: 0.5 },
-      { id: "tealights",  house: "Covet",     name: "Rosewater Tealight Set",       conc: "Candles",   size: "4 tealights", value: 14,   odds: 9,   rarity: "signature", kind: "home", bb: 0.75 },
-      { id: "labubu",     house: "Pop Mart",  name: "Labubu Macaron Charm",         conc: "Blind box", size: "sealed",      value: 32,   odds: 2.9, rarity: "reserve",   kind: "charm" },
+      { id: "incense",    house: "Covet",     name: "Cherry Incense Ritual Sticks", conc: "Incense",   size: "10 sticks",   value: 12,   odds: 99.9, rarity: "signature", kind: "home", bb: 0.5 },
       { id: "marmont", dtc: true, house: "Gucci", name: "Marmont Small",            conc: "Pre-loved, excellent", size: "authenticated", value: 1200, odds: 0.1, rarity: "grail", kind: "bag" },
     ],
   },
@@ -1023,26 +1019,6 @@ try {
   }
 } catch {}
 
-/* MVP demo trim: seven curated boxes keep the admin panel and grids readable
-   for the dev handoff. Admin-authored boxes (adm_) always survive the trim.
-   The full curated catalog returns after MVP. */
-const MVP_BOXES = ["itgirl", "oldmoney", "parisian", "handbag", "heiress", "coquette", "datenight"];
-for (let _i = CASES.length - 1; _i >= 0; _i--) {
-  const _c = CASES[_i];
-  if (!_c.free && !_c.id.startsWith("adm_") && !MVP_BOXES.includes(_c.id)) CASES.splice(_i, 1);
-}
-
-/* box-level rest switch: admin can turn a whole box off (low-stock tooling).
-   Off boxes hide from the grids and refuse opens until turned back on. */
-const LS_BOXES_OFF = "covet_boxes_off";
-function getBoxesOff() { try { return JSON.parse(localStorage.getItem(LS_BOXES_OFF)) || []; } catch { return []; } }
-function setBoxOff(id, off) {
-  const l = getBoxesOff().filter((x) => x !== id);
-  if (off) l.push(id);
-  localStorage.setItem(LS_BOXES_OFF, JSON.stringify(l));
-}
-try { const _off = getBoxesOff(); CASES.forEach((c) => { c.off = _off.includes(c.id); }); } catch {}
-
 /* ---------- the wishlist box ---------- */
 const LS_WISHLIST = "covet_wishlist";
 
@@ -1065,18 +1041,6 @@ const EXTRA_DROPS = [
 /* admin item overrides (demo): price edits, pauses (restocking:
    can't be pulled, so no stock-out credits), removals (remaining odds
    re-balance to 100). Production: items table + supplier feed. */
-/* admin master switches: read by storefront pages on boot. Demo stand-in
-   for the production admin config service. */
-const LS_ADMIN_SETTINGS = "covet_admin_settings";
-function getAdminSettings() {
-  const d = { cardDeposits: true, giftCards: true, giveaway: true, kycLock: false, reviewTrades: true, stockFloor: 0 };
-  try { return { ...d, ...(JSON.parse(localStorage.getItem(LS_ADMIN_SETTINGS)) || {}) }; } catch { return d; }
-}
-function setAdminSetting(k, v) {
-  const s = getAdminSettings(); s[k] = v;
-  localStorage.setItem(LS_ADMIN_SETTINGS, JSON.stringify(s));
-}
-
 const LS_ITEM_OVERRIDES = "covet_item_overrides";
 function getItemOverrides() {
   try { return JSON.parse(localStorage.getItem(LS_ITEM_OVERRIDES)) || {}; } catch { return {}; }
@@ -1199,7 +1163,7 @@ function setWishPct(id, pct) {
   if (!ids.includes(id)) return;
   const n = ids.length;
   /* 85% ceiling on any single piece. Safe at any concentration because
-     the price floor below charges at least 1.25x our cost EV + shipping,
+     the price floor below charges at least our cost EV + the admin profit % + shipping,
      so even a near-certain hype-house pick can't sell below our cost. */
   pct = Math.min(85, 100 - (n - 1), Math.max(1, Math.round(pct)));
   const m = normalizeWishPcts();
@@ -1217,9 +1181,20 @@ function setWishPct(id, pct) {
   return m;
 }
 
-/* Wishlist box: her odds, priced at 90% of the odds-blended value,
-   floored at 1.25x our cost EV + $6 shipping reserve. The floor is the
-   economic protection: without it, concentrating odds on thin-margin
+/* Wishlist box pricing, set in Admin → Boxes → "Wishlist box pricing":
+     profitPct  minimum profit over our cost EV (25 = cost × 1.25)
+     shipping   flat shipping reserve added on top of the floor, in $
+     valuePct   the normal price as a % of the odds-blended market value */
+const WISH_PRICING_DEFAULT = { profitPct: 25, shipping: 6, valuePct: 90 };
+function getWishPricing() {
+  let o = {};
+  try { o = JSON.parse(localStorage.getItem("covet_wish_pricing")) || {}; } catch {}
+  return { ...WISH_PRICING_DEFAULT, ...o };
+}
+
+/* Wishlist box: her odds, priced at valuePct of the odds-blended value,
+   floored at our cost EV × (1 + profitPct) + the shipping reserve. The floor
+   is the economic protection: without it, concentrating odds on thin-margin
    hype items sells them below our cost (adverse selection). */
 function wishlistBoxFrom(dropIds) {
   const pool = allDrops().filter((d) => dropIds.includes(d.id));
@@ -1228,7 +1203,8 @@ function wishlistBoxFrom(dropIds) {
   const drops = pool.map((d) => ({ ...d, odds: m[d.id] || 1 }));
   const blended = drops.reduce((s, d) => s + (d.odds / 100) * d.value, 0);
   const costEV = drops.reduce((s, d) => s + (d.odds / 100) * costOf(d), 0);
-  const price = Math.max(10, Math.ceil(blended * 0.9), Math.ceil(costEV * 1.25 + 6));
+  const wp = getWishPricing();
+  const price = Math.max(10, Math.ceil(blended * wp.valuePct / 100), Math.ceil(costEV * (1 + wp.profitPct / 100) + wp.shipping));
   return {
     id: "custom",
     numeral: "XVIII",
@@ -1306,7 +1282,7 @@ function costOf(d) {
    second open can never promise the same piece. Selling it back releases
    the hold. Stock 0 auto-pauses the item (flagged restocking, excluded
    from rolls); the auto flag lets a sell-back unpause it again without
-   touching pauses set manually in admin. */
+   touching pauses Riley set by hand. */
 function reserveStock(drop) {
   if (!drop || drop.stock == null) return;
   try {
@@ -1353,41 +1329,19 @@ function releaseStock(dropId) {
   } catch {}
 }
 
-let FREE_RARE_RATE = 0.95; /* free-box rares: % of our cost offered as credit; ops dial */
-try {
-  if (typeof localStorage !== "undefined") {
-    const r = parseFloat(localStorage.getItem("covet_free_rare_rate"));
-    if (r >= 50 && r <= 100) FREE_RARE_RATE = r / 100;
-  }
-} catch {}
 /* the instant-buyback offer: explicit bb wins, else dial % of our cost.
    Floor: whole dollars, never rounded up. */
 function buybackOf(d) {
   if (d.bb != null) return d.bb;
   return Math.floor(costOf(d) * BUYBACK_RATE);
 }
-/* Free-box buyback policy:
-   · commons: tiny ($1-$2). Commons hit daily, so this is the program's
-     cost knob; anything richer mints credit that redeems as wholesale
-     goods with no revenue attached.
-   · rares (archive/grail): 50% of value. Credit is CHEAPER for us than
-     fulfilling (credit respends into house-positive boxes, ~$0.65 real
-     cost per $1; gift card trades need a purchase + KYC), so we WANT sellers.
-     The haircut vs the paid-box 70% rate keeps shipping the best deal,
-     because shipped free-box rares are the marketing.
-   Free-pull credit is additionally box credit: it spends on boxes and
-   only counts toward bank transfers after being used in an open.
-   Gift card trades always require a completed purchase on the account. */
+/* Free-box buyback policy: set by hand per item (bb) when the free box is
+   built in admin; there is no free-box dial. Fallbacks if bb is missing:
+   commons get a tiny $1-$2, grails get the standard dial. Free-pull credit
+   is box credit (Locked): it spends on boxes only. */
 function buybackFor(kase, drop) {
-  if (drop.bb != null) return drop.bb; /* explicit per-item offer (daily fillers) */
-  if (kase && kase.free) {
-    if (drop.rarity === "signature") return Math.min(2, Math.max(1, Math.round(drop.value * 0.3)));
-    /* rare free pulls: offer just under what fulfillment would cost us.
-       If she ships we pay full cost anyway, so paying up to ~cost in credit
-       (which recycles through boxes) is strictly the better outcome. */
-    return Math.floor(costOf(drop) * FREE_RARE_RATE);
-  }
-  if (kase && kase.buybackMode === "value") return Math.floor(drop.value * 0.65);
+  if (drop.bb != null) return drop.bb; /* explicit per-item offer */
+  if (kase && kase.free && drop.rarity === "signature") return Math.min(2, Math.max(1, Math.round(drop.value * 0.3)));
   return buybackOf(drop);
 }
 function floorValue(kase) {
@@ -1400,15 +1354,75 @@ function money(n) {
     maximumFractionDigits: 2,
   });
 }
+/* ---------- provably fair roll: THE reference implementation ----------
+   Industry-standard HMAC-SHA256 scheme. The production server must produce
+   identical rolls, and the public verifier (fairness.html) calls this.
+
+     digest = HMAC-SHA256(key = serverSeed, message = clientSeed + ":" + nonce)
+     float  = b0/256 + b1/256^2 + b2/256^3 + b3/256^4   (first 4 digest bytes)
+     roll   = float * 100                               (0 <= roll < 100)
+
+   The byte-fraction conversion is exactly uniform (no modulo bias). The roll
+   then walks the box's odds table in published order (rollDrop below):
+   item i wins when cumulative odds before it <= roll < cumulative through it.
+   Test vector (check the server against it):
+     serverSeed "a7c1e9f3b2d8406c5e1f9a3b7d2c8e40"
+       SHA-256 hash  b6257e4570f3a606d8fe9ce628e3a7348cf1dfb1c1ba5ee243cd8be83506713d
+     clientSeed "riley-lucky-13", nonce 7
+       HMAC digest   93ef020ede28c39d595bf8f0a06f9ef6dad42b12ca1ad021daa8ef281b8dd688
+       roll          57.7865723055
+   Rules the production server must follow so every pull stays verifiable:
+   · Encoding: serverSeed, clientSeed and the message are UTF-8 strings;
+     the nonce is written in base 10 with no padding ("7", not "07").
+   · Odds table: walk items in the box's stored order (the box page may
+     display them most-valuable-first, but each row shows its roll range from
+     this stored order). Add odds in that order as doubles:
+     cumulative = cumulative + odds. Tables total 100.
+   · Nonce: starts at 0 and goes up by 1 per pull for that customer, per
+     (serverSeed, clientSeed) pair. It resets to 0 when either changes.
+   · Client seed: generated randomly per customer (16+ characters) on
+     sign-up, editable any time from the profile.
+   · Server seed: from random.org, rotated daily at midnight ET. Its
+     SHA-256 hash is published before it serves a pull; the seed itself is
+     revealed at rotation.
+   · Snapshot: store each pull's serverSeed hash, clientSeed, nonce, roll
+     and the box's odds table version, so later edits to a box never break
+     verification of past pulls.
+   · Low stock hides the whole box (no pausing single items), so live rolls
+     always use the full published table.
+   (The prototype's live demo pulls use Math.random; only the verifier and
+   the production server run this.) */
+async function provablyFairRoll(serverSeed, clientSeed, nonce) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", enc.encode(serverSeed), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(`${clientSeed}:${nonce}`)));
+  const float = sig[0] / 256 + sig[1] / 256 ** 2 + sig[2] / 256 ** 3 + sig[3] / 256 ** 4;
+  const hex = [...sig].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return { hex, roll: float * 100 };
+}
+/* the published commitment: SHA-256 of the server seed, shown before any pull */
+async function seedHash(serverSeed) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(serverSeed));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/* each item's roll range, walking the odds table in roll (stored) order.
+   Display order can differ (e.g. most valuable first); the ranges can't. */
+function withRollRanges(kase) {
+  let c = 0;
+  return kase.drops.map((d) => { const from = c; c += d.odds; return { d, from, to: c }; });
+}
+
 /* Weighted pick by odds */
 function rollDrop(kase, roll /* 0-100 float, optional */) {
-  /* paused (restocking) items can't land; their weight spreads pro-rata.
-     Same rule for anything under the admin stock floor. */
-  const floor = getAdminSettings().stockFloor || 0;
-  const live = kase.drops.filter((d) => !d.paused && !(d.stock != null && d.stock < floor));
+  /* paused (restocking) items can't land; their weight spreads pro-rata */
+  const live = kase.drops.filter((d) => !d.paused);
   const pool = live.length ? live : kase.drops;
   const total = pool.reduce((a, d) => a + d.odds, 0) || 100;
-  const r = (roll == null ? Math.random() * 100 : roll) * total / 100;
+  const raw = roll == null ? Math.random() * 100 : roll;
+  /* published tables total exactly 100, so the roll is used as-is (no
+     rescaling arithmetic that another language could round differently) */
+  const r = total === 100 ? raw : raw * total / 100;
   let acc = 0;
   for (const d of pool) {
     acc += d.odds;
@@ -1429,15 +1443,52 @@ function tickerItems(n = 14) {
   return out;
 }
 
-/* This week's luckiest wall (mock, "updated Mondays") */
-const LUCKY_WEEK = [
-  { who: "Mia K.",     caseId: "itgirl",   dropId: "br540ext",    note: "0.6% pull" },
-  { who: "Priya S.",   caseId: "handbag",  dropId: "classicflap", note: "1.2% pull" },
-  { who: "Camille D.", caseId: "oldmoney", dropId: "clivex",      note: "0.8% pull" },
-];
 
-/* This week's giveaway (mock) */
+/* ---------- THIS WEEK'S GIVEAWAY ----------
+   Swap the prize here and every surface updates on its own: the strip under
+   the hero, the homepage showcase, the entry popups and the admin panel.
+
+   dropId   an item id from the boxes above (e.g. "classicflap", "birkin25",
+            "rolex28"). Fills the card art, house, name and value automatically.
+   image    optional photo path, e.g. "assets/p/loucamera.png". Shown on the
+            card instead of the drawn art when set.
+   prize    how it reads inside a sentence, lowercase article included:
+            "a vintage Chanel Classic Flap" / "an Hermès Birkin 25".
+   house, name, tag, value
+            leave blank ("") to use the box item's own details, or type a
+            value to override what the prize card shows. */
 const GIVEAWAY = {
+  dropId: "classicflap",
+  image: "",
   prize: "a vintage Chanel Classic Flap",
-  ends: "Sunday midnight ET",
+  house: "",
+  name: "Classic Flap",
+  tag: "vintage · authenticated",
+  value: "",
+  cadence: "weekly", /* "weekly" (draws Sunday midnight ET) or "monthly" (draws the last day of the month, midnight ET). Admin → Giveaway can switch it. */
+  lastWinner: "Lena R.",
+  lastPrize: "the Lady Dior Mini",
 };
+
+/* every giveaway word that depends on weekly vs monthly comes from here */
+function gwCadence() {
+  try { const c = localStorage.getItem("covet_gw_cadence"); if (c === "weekly" || c === "monthly") return c; } catch {}
+  return GIVEAWAY.cadence === "monthly" ? "monthly" : "weekly";
+}
+function gwTerms() {
+  return gwCadence() === "monthly"
+    ? { adj: "monthly", Adj: "Monthly", period: "month", thisL: "this month's", thisP: "This month's", ThisP: "This Month's", every: "every month", ends: "the last day of the month, midnight ET" }
+    : { adj: "weekly", Adj: "Weekly", period: "week", thisL: "this week's", thisP: "This week's", ThisP: "This Week's", every: "every week", ends: "Sunday midnight ET" };
+}
+/* next draw: Sunday midnight ET, or midnight ET at the end of the month (≈ 04:00 UTC) */
+function gwNextDraw(now = new Date()) {
+  if (gwCadence() === "monthly") {
+    const y = now.getUTCFullYear(), m = now.getUTCMonth();
+    const cutoff = new Date(Date.UTC(y, m, 1, 4)); /* first hours of the 1st still belong to last month in ET */
+    return now < cutoff ? cutoff : new Date(Date.UTC(y, m + 1, 1, 4));
+  }
+  const t = new Date(now);
+  t.setUTCDate(now.getUTCDate() + ((7 - now.getUTCDay()) % 7 || 7));
+  t.setUTCHours(4, 0, 0, 0);
+  return t;
+}

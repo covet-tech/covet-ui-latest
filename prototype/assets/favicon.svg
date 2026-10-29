@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Covet tab icon: a simple gift box, readable at 16px -->
+  <path d="M16 9c-1.6-3.6-6.2-5.4-7.6-3.2C7.2 7.7 10.4 9 16 9zm0 0c1.6-3.6 6.2-5.4 7.6-3.2C24.8 7.7 21.6 9 16 9z" fill="none" stroke="#e02d56" stroke-width="2.2" stroke-linejoin="round"/>
+  <rect x="3" y="9" width="26" height="7" rx="1.8" fill="#e02d56"/>
+  <rect x="5" y="16" width="22" height="13" rx="1.8" fill="#e02d56"/>
+  <rect x="14" y="9" width="4" height="20" fill="#ffd6e0"/>
+  <rect x="5" y="16" width="22" height="1.6" fill="#b81f44"/>
+</svg>

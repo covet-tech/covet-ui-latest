@@ -4,11 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Boxes · Covet</title>
-  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=2" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=310" />
+  <link rel="stylesheet" href="css/style.css?v=285" />
   <style>
     .sort-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 24px; }
     .sort-row .micro { margin-right: 6px; }
@@ -80,17 +81,17 @@
 
   <footer class="site-foot"></footer>
 
-  <script src="js/data.js?v=310"></script>
-  <script src="js/art.js?v=310"></script>
-  <script src="js/app.js?v=310"></script>
+  <script src="js/data.js?v=290"></script>
+  <script src="js/art.js?v=281"></script>
+  <script src="js/app.js?v=293"></script>
   <script>
     const FEATURED_ORDER = ["sunnies", "richmom", "handbag", "beauty", "heiress", "vanillagirl", "oldmoney", "archive"];
-    const PER_PAGE = 4; /* full row per page; small catalog keeps the pager visible */
+    const PER_PAGE = 16;
     let sortMode = "featured";
     let gridPage = 1;
     function renderGrid() {
       const q = (document.getElementById("boxSearch").value || "").trim().toLowerCase();
-      let list = [...CASES].filter((k) => !k.off);
+      let list = [...CASES];
       if (sortMode === "featured") {
         const rank = (c) => { const i = FEATURED_ORDER.indexOf(c.id); return i === -1 ? 100 + CASES.indexOf(c) : i; };
         list.sort((a, b) => rank(a) - rank(b));
@@ -106,7 +107,7 @@
           <div class="cc-top"><span class="case-num">No. XVIII</span><span class="cc-price">Your call</span></div>
           <h3>Your Wishlist</h3>
           <p class="cc-get">Pick your pieces, pick your chances. One ships.</p>
-          <div class="case-bottles" style="color:#e0417c;margin:6px 0 16px">${bottleSVG(20)}${bottleSVG(20)}${bottleSVG(20)}</div>
+          <div class="case-bottles" style="color:#e0417c;margin:6px 0 16px">${bottleSVG(20)}${bagSVG(20)}${heelSVG(20)}</div>
           <div class="cc-vals"><span>You pick the odds</span><span><b data-wishcount>0</b> hearted</span></div>
           <span class="btn btn-ghost" style="width:100%;margin-top:16px;padding-left:12px;padding-right:12px;white-space:nowrap">Open my wishlist</span>
         </a>`;
@@ -116,8 +117,8 @@
       if (gridPage > pages) gridPage = pages;
       document.getElementById("allCases").innerHTML = cards.slice((gridPage - 1) * PER_PAGE, gridPage * PER_PAGE).join("");
       document.getElementById("boxCount").textContent = q
-        ? `${list.length} of ${CASES.filter((k) => !k.off).length} boxes`
-        : `${CASES.filter((k) => !k.off).length} boxes · always growing`;
+        ? `${list.length} of ${CASES.length} boxes`
+        : `${CASES.length} boxes · always growing`;
       document.getElementById("pager").innerHTML = pages <= 1 ? "" :
         `<button class="fchip" ${gridPage === 1 ? "disabled" : ""} onclick="setPage(${gridPage - 1})">‹</button>` +
         Array.from({ length: pages }, (_, i) =>

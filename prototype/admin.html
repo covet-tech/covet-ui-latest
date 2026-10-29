@@ -4,11 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ops · Covet</title>
-  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=2" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=310" />
+  <link rel="stylesheet" href="css/style.css?v=285" />
   <style>
     .ops-tabs { display: flex; gap: 8px; margin-bottom: 26px; flex-wrap: wrap; }
     .ops-tab {
@@ -99,18 +100,6 @@
     .chat-input { display: flex; gap: 10px; padding-top: 14px; border-top: 1px dashed var(--line-soft); }
     .chat-input input { flex: 1; padding: 12px 18px; border-radius: 100px; border: 1px solid var(--line); font-family: inherit; font-size: 13px; outline: none; }
     .chat-input input:focus { border-color: var(--gold); }
-    /* settings toggles */
-    .tgl { position: relative; width: 46px; height: 26px; border-radius: 100px; background: var(--line); border: 0; cursor: pointer; transition: background 0.25s; flex-shrink: 0; padding: 0; }
-    .tgl::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: left 0.25s; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
-    .tgl.on { background: #2c8a4b; }
-    .tgl.on::after { left: 23px; }
-    .set-card { margin-bottom: 14px; display: block; }
-    .set-card h4 { font-family: var(--serif); font-size: 16px; margin-bottom: 4px; }
-    .set-row { display: flex; align-items: center; gap: 16px; padding: 13px 0; border-bottom: 1px solid var(--line-soft); }
-    .set-row:last-child { border-bottom: 0; }
-    .set-row .set-txt { flex: 1; }
-    .set-row b { font-size: 13.5px; }
-    .set-row p { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
   </style>
 </head>
 <body data-page="admin" data-no-gate>
@@ -128,53 +117,92 @@
     <section class="shell">
       <div class="ops-stats">
         <div class="ops-stat"><b id="opPending">0</b><span>Pending</span></div>
+        <div class="ops-stat"><b id="opSaved">$0</b><span>Saved vs API today</span></div>
         <div class="ops-stat"><b>34%</b><span>Avg margin this week</span></div>
-        <div class="ops-stat"><b id="opLiab">$0</b><span>Credit out there right now <span class="info-tip" data-tip="Every dollar customers could spend or trade this second: all user balances, locked and unlocked, plus creator earnings not yet spent. A liability until it respends on a box or trades for a gift card.">?</span></span></div>
+        <div class="ops-stat"><b>$4,120</b><span>Wallet liabilities held</span></div>
       </div>
 
+      <div class="ord" style="align-items:center">
+        <div style="flex:1">
+          <b style="font-family:var(--serif);font-size:17px">Site event theme</b>
+          <p class="micro" style="margin-top:4px">Reskins the whole site for a holiday: the gift reveals recolor, themed bits fall across every page, and giveaway entries rename (santas, pumpkins, clovers). Flip it back to None the morning after.</p>
+        </div>
+        <div class="field" style="margin:0;width:190px"><label>Theme</label>
+          <select id="thSel">
+            <option value="">None · signature pink</option>
+            <option value="christmas">Christmas</option>
+            <option value="halloween">Halloween</option>
+            <option value="stpatricks">St. Patrick's Day</option>
+          </select>
+        </div>
+        <button class="btn btn-gold" onclick="thApply()">Apply</button>
+      </div>
 
+      <div class="ord" style="align-items:center">
+        <div style="flex:1">
+          <b style="font-family:var(--serif);font-size:17px">Maintenance mode</b>
+          <p class="micro" style="margin-top:4px">Pauses the whole storefront behind a "be right back" page while you fix or restock. Balances, shelves, and streaks are untouched; the admin panel stays reachable. In production this is a server flag, so reveals already in motion finish before the curtain drops.</p>
+        </div>
+        <div class="field" style="margin:0;flex:0 0 280px"><label>Message (optional)</label><input id="mtMsg" placeholder="Restocking the shelves, back in a bit ♥" /></div>
+        <button class="btn btn-gold" id="mtBtn" onclick="mtToggle()">Pause the site</button>
+      </div>
 
       <div class="ops-tabs" id="opsTabs">
         <button class="ops-tab on" data-pane="ship">Shipments</button>
         <button class="ops-tab" data-pane="buyback">Buybacks</button>
+        <button class="ops-tab" data-pane="withdraw">Review · KYC</button>
         <button class="ops-tab" data-pane="boxes">Boxes</button>
         <button class="ops-tab" data-pane="stats">Stats</button>
         <button class="ops-tab" data-pane="giveaway">Giveaway</button>
         <button class="ops-tab" data-pane="creators">Creators</button>
         <button class="ops-tab" data-pane="users">Users</button>
         <button class="ops-tab" data-pane="support">Support <span class="live-dot"></span></button>
-        <button class="ops-tab" data-pane="settings">Settings</button>
       </div>
 
       <div class="tab-pane on" id="pane-ship">
         <div id="queue"></div>
-        <p class="micro" style="margin-top:18px">"Fulfill via API" places the supplier order and attaches tracking automatically. "Manual" records your source and tracking number. "Credit" credits her balance instead of shipping.</p>
+        <p class="micro" style="margin-top:18px">"Fulfill via API" places the supplier order and attaches tracking automatically. "Manual" opens a form for the carrier and tracking number (or "No tracking" for free-box commons sent by plain mail). "Credit" credits her balance instead of shipping.</p>
       </div>
 
       <div class="tab-pane" id="pane-buyback">
         <div id="bbFeed"></div>
-        <p class="micro" style="margin-top:18px">Every accepted buyback is an order you never had to fulfill. Watch for heavy cyclers: many buybacks plus heavy gift card trading is the pattern worth a second look.</p>
+        <p class="micro" style="margin-top:18px">Every accepted buyback is an order you never had to fulfill. Watch for heavy cyclers: many buybacks across several boxes is the pattern worth a second look.</p>
+      </div>
+
+      <div class="tab-pane" id="pane-withdraw">
+        <div id="wdQueue"></div>
+        <p class="micro" style="margin-top:18px">Deposits, purchases and shipments run on their own. Only these wait here for your click: a KYC'd identity that already has another account, high-value first days ($500+ in a day), 3 or more shipping addresses in 30 days, and KYC results that don't match the attested age or state. Balances spend on boxes only; there are no withdrawals in the MVP.</p>
       </div>
 
       <div class="tab-pane" id="pane-boxes">
-        <div class="ord set-card" style="border-color:#e8b64c;display:block">
-          <h4>Low stock</h4>
-          <p class="micro" style="margin:2px 0 8px">Anything with 3 or fewer left lands here so you can swap it out, pause it, or rest its whole box. Items that hit 0 auto-pause on their own.</p>
-          <div id="lowStockList"></div>
-        </div>
         <div class="ord" style="align-items:center">
           <div style="flex:1">
             <b style="font-family:var(--serif);font-size:17px">Instant buyback dial</b>
-            <p class="micro" style="margin-top:4px">What we offer on paid-box pulls, as a % of what WE source the item for (supplier cost in production, sourcing-class estimate in the demo). At 100% a sell-back costs you exactly a restock. The free-rares dial covers rare pulls from free boxes, offered near our fulfillment cost since shipping would cost us 100% anyway. Neither dial touches free-box penny commons or items with an explicit buyback price.</p>
+            <p class="micro" style="margin-top:4px">The default offer for any item without its own buyback price, as a % of what WE source the item for (supplier cost in production, sourcing-class estimate in the demo). At 100% a sell-back costs you exactly a restock. Start lean while cash is tight, then turn it up: richer offers drive sell-backs and the credit re-spends at your edge. Free-box items are set by hand: give each one its own buyback price when you create it.</p>
           </div>
-          <div class="field" style="margin:0;width:120px"><label>Paid boxes %</label>
+          <div class="field" style="margin:0;width:120px"><label>Default %</label>
             <input id="bbRate" type="number" min="40" max="95" step="1" oninput="bbExample()" />
-          </div>
-          <div class="field" style="margin:0;width:120px"><label>Free rares %</label>
-            <input id="bbFreeRate" type="number" min="50" max="100" step="1" oninput="bbExample()" />
           </div>
           <div class="ord-cost" id="bbEx"></div>
           <button class="btn btn-gold" onclick="bbSave()">Apply</button>
+        </div>
+
+        <div class="ord" style="align-items:center">
+          <div style="flex:1;min-width:240px">
+            <b style="font-family:var(--serif);font-size:17px">Wishlist box pricing</b>
+            <p class="micro" style="margin-top:4px">How a customer's custom wishlist box is priced. Price = the higher of (a) her odds-weighted market value × "% of value", or (b) our odds-weighted cost × (1 + profit %) + shipping. (b) is the floor that keeps a box from selling below cost. Never under $10.</p>
+          </div>
+          <div class="field" style="margin:0;width:110px"><label>Profit % over cost</label>
+            <input id="wpProfit" type="number" min="0" max="200" step="1" oninput="wpExample()" />
+          </div>
+          <div class="field" style="margin:0;width:100px"><label>+ Shipping $</label>
+            <input id="wpShip" type="number" min="0" max="100" step="0.5" oninput="wpExample()" />
+          </div>
+          <div class="field" style="margin:0;width:100px"><label>% of value</label>
+            <input id="wpValue" type="number" min="50" max="150" step="1" oninput="wpExample()" />
+          </div>
+          <div class="ord-cost" id="wpEx"></div>
+          <button class="btn btn-gold" onclick="wpSave()">Apply</button>
         </div>
 
         <div class="ord" style="align-items:center">
@@ -189,7 +217,7 @@
           <div class="addr-row">
             <div class="field" style="flex:2;margin:0"><label>Box name</label><input id="bxName" placeholder="The Cherry Girl Box" /></div>
             <div class="field" id="bxPriceField" style="flex:1;margin:0"><label>Price $</label><input id="bxPrice" type="number" min="5" placeholder="30" oninput="bxCalc()" /></div>
-            <div class="field" id="bxRateField" style="flex:1;margin:0"><label>Buyback offer</label><select id="bxRateMode" onchange="bxCalc()"><option value="cost" selected>80% of our cost</option><option value="value">65% of shown value</option></select></div>
+            <div class="field" id="bxRateField" style="flex:1;margin:0"><label>Buyback offer</label><select id="bxRateMode" onchange="bxCalc()"><option value="cost" selected>Default % of our cost</option></select></div>
             <div class="field" id="bxSellField" style="flex:1;margin:0"><label>Sell-back %</label><input id="bxSell" type="number" step="5" min="0" max="90" value="50" oninput="bxCalc()" /></div>
             <div class="field" style="flex:1;margin:0"><label>Tint</label><input id="bxTint" type="color" value="#f4a9bc" style="height:42px;padding:4px" /></div>
           </div>
@@ -203,7 +231,7 @@
           <div class="ord-cost" id="bxMeter" style="line-height:1.9"></div>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <button class="btn btn-ghost" onclick="bxSolve()">Auto-balance odds</button>
-            <span class="info-tip" data-tip="Starts every item from a rarity seed (signature 12 · reserve 6 · archive 2 · grail 1) so commons dominate and grails stay thin. For priced boxes it then tilts odds toward or away from the expensive items, over ~80 tries, until the buyback EV lands on target (45% of price in cost mode, 80% in value mode) and rounds to exactly 100. It makes the box solvent; shape the feel yourself after.">?</span>
+            <span class="info-tip" data-tip="Starts every item from a rarity seed (Sweet 12 · Reserve 6 · Coveted 2 · Grail 1) so commons dominate and grails stay thin. For priced boxes it then tilts odds toward or away from the expensive items, over ~80 tries, until the buyback EV lands on target (45% of price in cost mode, 80% in value mode) and rounds to exactly 100. It makes the box solvent; shape the feel yourself after.">?</span>
             <button class="btn btn-ghost" id="bxCuteBtn" onclick="bxCutePrice()">Suggest cute price</button>
             <span class="info-tip" id="bxCuteTip" data-tip="Prices backward from margin: takes the box's cost EV (each item's cost to us × its odds, summed) and divides by 0.65, so our expected cost is 65% of the price, a ~35% gross margin. Then rounds UP to a shelf-looking number: next $2 under $40, $5 under $100, $10 under $300, $25 above. Never rounds down, so cuteness only adds margin.">?</span>
             <button class="btn btn-gold" id="bxSaveBtn" disabled onclick="bxSave()">Save & publish</button>
@@ -224,6 +252,20 @@
         </div>
         <div id="dailyList"></div>
 
+        <!-- Boutique is out of the MVP: shop manager kept but hidden so its JS still has its mounts -->
+        <div hidden>
+        <div class="ord" style="align-items:center;margin-top:26px">
+          <div style="flex:1">
+            <b style="font-family:var(--serif);font-size:17px">The Shop</b>
+            <p class="micro" style="margin-top:4px">Buy-now storefront, linked from the footer. Add any catalog or custom item and set its shop price. Anchor rule: shop prices sit AT OR ABOVE the item's shown market value, or the box value story collapses. All sales final; damaged or wrong arrivals always made right.</p>
+          </div>
+        </div>
+        <div class="field" style="margin:0 0 10px;position:relative">
+          <input id="shSearch" placeholder="Search items to add to the shop…" oninput="shSearchRender()" autocomplete="off" />
+          <div id="shResults" class="bx-results"></div>
+        </div>
+        <div id="shopList"></div>
+        </div>
 
         <div class="ord" style="align-items:center;margin-top:26px">
           <div style="flex:1">
@@ -243,7 +285,7 @@
           <button class="btn btn-gold" onclick="toggleManForm()">+ New custom item</button>
         </div>
         <div class="ord" id="manForm" style="display:none;flex-direction:column;align-items:stretch;gap:10px">
-          <p class="micro">For grail and marketing items no supplier API stocks. You fulfill these by hand (Amazon, StockX, department stores). Create it once and it shows up in the box builder search like any catalog item; keep its odds tiny and its cost honest. Rarity tier lives on the box, not the item: you pick it per row when you build each box.</p>
+          <p class="micro">For grail and marketing items no supplier API stocks. You fulfill these by hand (Amazon, StockX, boutique). Create it once and it shows up in the box builder search like any catalog item; keep its odds tiny and its cost honest. Rarity tier lives on the box, not the item: you pick it per row when you build each box.</p>
           <div class="addr-row">
             <div class="field" style="flex:1;margin:0"><label>House</label><input id="mfHouse" placeholder="Gucci" /></div>
             <div class="field" style="flex:1.4;margin:0"><label>Item</label><input id="mfName" placeholder="GG Marmont Small" /></div>
@@ -265,6 +307,10 @@
               <span class="btn btn-ghost" style="pointer-events:none">Upload</span>
             </label>
             <input id="mfImg" type="file" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="mfImgPreview(this)" />
+          </div>
+          <div class="addr-row" style="align-items:center" hidden>
+            <label class="micro" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="mfShop" onchange="document.getElementById('mfShopPrice').style.display = this.checked ? '' : 'none'" /> Also sell it in the Boutique</label>
+            <div class="field" id="mfShopPrice" style="display:none;flex:0 0 170px;margin:0"><label>Boutique price $</label><input id="mfShopP" type="number" min="1" placeholder="auto cute price" /></div>
           </div>
           <div style="display:flex;gap:10px">
             <button class="btn btn-gold" onclick="icCreateItem()">Create item</button>
@@ -300,50 +346,17 @@
         <p class="micro" style="margin-top:16px">Demo numbers, shaped to the real economics (roughly 21% net after the free program). In production this tab reads the event stream, so every figure here reconciles to transaction ids.</p>
       </div>
 
-      <div class="tab-pane" id="pane-settings">
-        <div class="ord set-card">
-          <h4>General</h4>
-          <div class="set-row"><div class="set-txt"><b>Maintenance mode</b><p>Storefront shows the be-right-back page; admin stays reachable. Reveals in motion finish first.</p></div>
-            <input id="mtMsg" placeholder="Restocking the shelves, back in a bit ♥" style="width:240px;padding:9px 14px;border:1px solid var(--line-soft);border-radius:100px;font:500 12px var(--sans);color:var(--ink);background:var(--bg)" />
-            <button class="tgl" id="tglMaint" onclick="mtToggle();mtRender()" aria-label="Maintenance"></button></div>
-          <div class="set-row"><div class="set-txt"><b>Lock new KYC sessions</b><p>Stops new verification sessions. Open ones can still finish.</p></div><button class="tgl" data-set="kycLock" aria-label="KYC lock"></button></div>
-          <div class="set-row"><div class="set-txt"><b>Manual approval on everything</b><p>Every shipment and gift card trade waits for your approval before it moves, even the small stuff.</p></div><button class="tgl" data-set="reviewTrades" aria-label="Review trades"></button></div>
-        </div>
-        <div class="ord set-card">
-          <h4>Money</h4>
-          <div class="set-row"><div class="set-txt"><b>Card deposits</b><p>Top-ups and pay-the-difference checkout by card.</p></div><button class="tgl" data-set="cardDeposits" aria-label="Card deposits"></button></div>
-        </div>
-        <div class="ord set-card">
-          <h4>Features</h4>
-          <div class="set-row"><div class="set-txt"><b>Gift cards</b><p>The trade-for-gift-cards page and every button pointing to it.</p></div><button class="tgl" data-set="giftCards" aria-label="Gift cards"></button></div>
-          <div class="set-row"><div class="set-txt"><b>Weekly giveaway</b><p>Pauses entries and shows "back next week" on the banners.</p></div><button class="tgl" data-set="giveaway" aria-label="Giveaway"></button></div>
-          <div class="set-row"><div class="set-txt"><b>Daily free boxes</b><p>The master switch from the Boxes tab, same control: pausing freezes every streak until her next open.</p></div><button class="tgl" id="tglDaily" onclick="dailyMasterToggle()" aria-label="Daily boxes"></button></div>
-          <div class="set-row"><div class="set-txt"><b>Low stock roll guard</b><p>Items with stock under this can't land from a pull; their odds spread across the rest of the box, same as a paused item. 0 turns it off. Sold-out items are always held.</p></div>
-            <span style="display:inline-flex;align-items:center;gap:12px">
-              <button class="btn btn-quiet" style="padding:8px 14px" onclick="stockFloorStep(-1)">−</button>
-              <b id="sfVal" style="min-width:70px;text-align:center;font-size:13px"></b>
-              <button class="btn btn-quiet" style="padding:8px 14px" onclick="stockFloorStep(1)">+</button>
-            </span></div>
-        </div>
-        <div class="ord set-card">
-          <h4>Site event theme</h4>
-          <div class="set-row"><div class="set-txt"><b>Holiday reskin</b><p>Recolors the reveals, drops themed bits across every page, and renames giveaway entries (santas, pumpkins, clovers). Back to None the morning after.</p></div>
-            <select id="thSel" style="width:190px;padding:9px 14px;border:1px solid var(--line-soft);border-radius:100px;font:600 12px var(--sans);color:var(--ink);background:var(--bg)">
-              <option value="">None · signature pink</option>
-              <option value="christmas">Christmas</option>
-              <option value="halloween">Halloween</option>
-              <option value="stpatricks">St. Patrick's Day</option>
-            </select>
-            <button class="btn btn-ghost" onclick="thApply()">Apply</button></div>
-        </div>
-        <p class="micro" style="margin-top:14px">Every switch writes to the shared config the storefront reads on load. In production these are server flags with an audit trail; flip one here, then refresh any customer page to watch it obey.</p>
-      </div>
-
       <div class="tab-pane" id="pane-giveaway">
         <div class="ord" style="align-items:flex-start">
           <div style="flex:1;min-width:240px">
-            <div class="ops-stat"><b id="gwPrize">·</b><span>This week's prize</span></div>
-            <p class="micro" style="margin-top:10px">Draws Sunday midnight ET · winner announced in the live feed and by email</p>
+            <div class="ops-stat"><b id="gwPrize">·</b><span><span data-gw="thisP">This week's</span> prize</span></div>
+            <p class="micro" style="margin-top:10px">Draws <span data-gw="ends">Sunday midnight ET</span> · winner announced in the live feed and by email</p>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap">
+              <span class="micro" style="font-weight:700">Giveaway runs</span>
+              <button class="ops-tab" id="gwc-weekly" onclick="setGwCadence('weekly');renderGiveaway()">Weekly</button>
+              <button class="ops-tab" id="gwc-monthly" onclick="setGwCadence('monthly');renderGiveaway()">Monthly</button>
+            </div>
+            <p class="micro" style="margin-top:6px">Live: switching applies from the next giveaway; the one running keeps its announced draw time. Weekly draws Sunday midnight ET, monthly on the last day of the month at midnight ET. Site copy (banner, rules, FAQ, countdown) follows automatically.</p>
           </div>
           <div class="ops-stat"><b>12,480</b><span>Entries</span></div>
           <div class="ops-stat"><b>1,942</b><span>Entrants</span></div>
@@ -371,23 +384,22 @@
         </div>
         <div id="gwQueue"></div>
         <div class="ord"><div class="ord-cost" style="line-height:2">
-          Entry sources this week:<br>
-          <b>7,910</b> from opens ($1 = 1) · <b>2,830</b> from daily claims · <b>1,375</b> from giveaway posts · <b>365</b> from shared pulls
+          Entry sources <span data-gw="thisL">this week's</span> giveaway:<br>
+          <b>7,910</b> from opens ($1 = 1) · <b>4,570</b> from daily claims
         </div></div>
         <div id="gwPast"></div>
       </div>
 
       <div class="tab-pane" id="pane-creators">
-        <div style="margin-bottom:16px"><input id="crSearch" type="search" placeholder="Search creators or codes…" oninput="renderCreators()" style="padding:12px 20px;border-radius:100px;border:1px solid var(--line);font-family:inherit;font-size:13px;outline:none;width:280px" /></div>
         <div id="crList"></div>
-        <p class="micro" style="margin-top:18px">Earnings accrue on referrals' cash opens only and credit to the creator's balance automatically, nothing to approve. This view ranks codes by what they bring in.</p>
+        <p class="micro" style="margin-top:18px">Earnings accrue on referrals' cash opens only and credit to the creator's balance automatically. No claim approvals; you can suspend a creator or code.</p>
       </div>
 
       <div class="tab-pane" id="pane-users">
         <div style="margin-bottom:16px;display:flex;gap:12px;flex-wrap:wrap"><input id="userSearch" type="search" placeholder="Search users…" oninput="renderUsers()" style="padding:12px 20px;border-radius:100px;border:1px solid var(--line);font-family:inherit;font-size:13px;outline:none;width:260px" /><input id="txnSearch" type="search" placeholder="Look up a transaction #…" oninput="txnLookup()" style="padding:12px 20px;border-radius:100px;border:1px solid var(--line);font-family:inherit;font-size:13px;outline:none;width:250px" /></div>
         <div id="txnResult"></div>
         <div id="userList"></div>
-        <p class="micro" style="margin-top:18px">Lifetime opens vs buybacks is the pattern to watch: heavy buyback share plus heavy gift card trading earns the ⚑ automatically in production.</p>
+        <p class="micro" style="margin-top:18px">Lifetime opens vs buybacks is the pattern to watch: a heavy buyback share earns the ⚑ automatically in production.</p>
       </div>
 
       <div class="tab-pane" id="pane-support">
@@ -401,39 +413,100 @@
 
   <footer class="site-foot"></footer>
 
-  <script src="js/data.js?v=310"></script>
-  <script src="js/art.js?v=310"></script>
-  <script src="js/app.js?v=310"></script>
+  <script src="js/data.js?v=290"></script>
+  <script src="js/art.js?v=281"></script>
+  <script src="js/app.js?v=293"></script>
   <script>
     const ORDERS = [
-      { uid: "o1", dropId: "br540ext",   who: "Priya S. · Austin, TX",  box: "The It Girl Box",   api: 322,  stock: null, age: "red",   note: "26h old · auto-routes in 0h" },
+      { uid: "o1", dropId: "classicflap", who: "Priya S. · Austin, TX",  box: "The Arm Candy Box",  api: 4450, stock: null, age: "red",   note: "26h old · auto-routes in 0h" },
       { uid: "o2", dropId: "br540_70",   who: "Mia K. · Miami, FL",     box: "The Old Money Box", api: 172,  stock: null, age: "amber", note: "14h old" },
-      { uid: "o3", dropId: "kayali10",   who: "Ava R. · Columbus, OH",  box: "The It Girl Box",   api: 9.4,  stock: 3,    age: "green", note: "2h old" },
-      { uid: "o4", dropId: "rarekit",    who: "Anonymous · Denver, CO", box: "The It Girl Box",   api: 18,   stock: 5,    age: "green", note: "1h old" },
-      { uid: "o5", dropId: "glossier50", who: "Elena K. · Phoenix, AZ", box: "The Parisian Box", api: 34,  stock: null, age: "green", note: "40m old" },
+      { uid: "o3", dropId: "kayali10",   who: "Ava R. · Columbus, OH",  box: "The It Girl Box",   api: 9.4,  stock: 7.1,  age: "green", note: "2h old" },
+      { uid: "o4", dropId: "lipbutter",  who: "Anonymous · Denver, CO", box: "The Vanity Box",    api: 11.2, stock: 8.5,  age: "green", note: "1h old" },
+      { uid: "o5", dropId: "lespecs",    who: "Elena K. · Phoenix, AZ", box: "The Off Duty Box", api: 22,  stock: null, age: "green", note: "40m old" },
+      { uid: "o6", dropId: "tealights",  who: "Noor A. · Tampa, FL",    box: "The Daily Fragrance Box", api: null, stock: 4.2, age: "green", note: "25m old", untracked: true },
     ];
+    let savedToday = 0;
+    /* an order item can come from a paid box or a free box */
+    function orderDrop(o) {
+      return allDrops().find((x) => x.id === o.dropId) || FREE_BOXES.flatMap((b) => b.drops).find((x) => x.id === o.dropId);
+    }
     function fulfill(uid, mode) {
       const row = document.getElementById(uid);
       const o = ORDERS.find(x => x.uid === uid);
       if (mode === "api") {
         row.querySelector(".ord-actions").innerHTML = `<span class="ord-status">Sent to supplier · tracking pending</span>`;
       } else if (mode === "manual") {
-        row.querySelector(".ord-actions").innerHTML = `<span class="ord-status">Fulfilling manually · add tracking when shipped</span>`;
+        openManualShip(uid);
+        return;
       } else if (mode === "credit") {
-        const d = bxCatalog.get(o.dropId);
+        const d = orderDrop(o);
         row.querySelector(".ord-actions").innerHTML = `<span class="ord-status" style="color:var(--gold)">Credited ${money(d.value)} to her balance</span>`;
-      } else {
-        row.querySelector(".ord-actions").innerHTML = `<span class="ord-status" style="color:var(--muted)">On hold</span>`;
       }
       row.classList.add("done");
       renderStats();
     }
+    /* manual fulfillment: record carrier + tracking (and where it came from).
+       Free-box commons default to "No tracking": they go by plain mail. */
+    function openManualShip(uid) {
+      const o = ORDERS.find(x => x.uid === uid);
+      const d = orderDrop(o);
+      const carriers = ["USPS", "UPS", "FedEx", "DHL", "Other"];
+      openModal(`
+        <span class="eyebrow">Manual fulfillment</span>
+        <h2>${d.house} ${d.name}</h2>
+        <p class="modal-sub">${o.who} · ${o.box}${o.untracked ? " · free-box common, ships by plain mail" : ""}</p>
+        <div class="field" style="text-align:left">
+          <label>Carrier</label>
+          <select id="msCarrier" onchange="msToggle()">
+            ${o.untracked ? `<option value="none" selected>No tracking (plain mail)</option>` : ""}
+            ${carriers.map((c) => `<option>${c}</option>`).join("")}
+            ${o.untracked ? "" : `<option value="none">No tracking (plain mail)</option>`}
+          </select>
+        </div>
+        <div class="field" style="text-align:left" id="msTrackWrap">
+          <label>Tracking number</label>
+          <input id="msTrack" placeholder="9400 1000 0000 0000 0000 00" autocomplete="off" />
+        </div>
+        <div class="field" style="text-align:left">
+          <label>Sourced from (optional)</label>
+          <input id="msSource" placeholder="${o.stock != null ? "My stock" : "e.g. Amazon, StockX"}" />
+        </div>
+        <p class="micro" id="msErr" style="display:none;color:var(--gold);margin-bottom:12px">Add the tracking number, or pick "No tracking".</p>
+        <div class="modal-actions">
+          <button class="btn btn-gold" onclick="saveManualShip('${uid}')">Mark shipped</button>
+          <button class="btn btn-quiet" onclick="closeModal()">Cancel</button>
+        </div>
+        <p class="micro after-note">The tracking number emails to her and shows on her shelf. It's also saved for the chargeback evidence file.</p>
+      `);
+      msToggle();
+    }
+    function msToggle() {
+      const none = document.getElementById("msCarrier").value === "none";
+      document.getElementById("msTrackWrap").style.display = none ? "none" : "";
+    }
+    function saveManualShip(uid) {
+      const o = ORDERS.find(x => x.uid === uid);
+      const carrier = document.getElementById("msCarrier").value;
+      const track = (document.getElementById("msTrack").value || "").trim();
+      const src = (document.getElementById("msSource").value || "").trim();
+      if (carrier !== "none" && !track) { document.getElementById("msErr").style.display = ""; return; }
+      if (o.stock != null && o.api != null) savedToday += o.api - o.stock;
+      const row = document.getElementById(uid);
+      const esc = (t) => t.replace(/[<>&"]/g, "");
+      row.querySelector(".ord-actions").innerHTML = carrier === "none"
+        ? `<span class="ord-status">Shipped by plain mail · no tracking${src ? " · from " + esc(src) : ""}</span>`
+        : `<span class="ord-status">Shipped · ${esc(carrier)} ${esc(track)}${src ? " · from " + esc(src) : ""}</span>`;
+      row.classList.add("done");
+      closeModal();
+      renderStats();
+    }
+
     /* sold-out flow: pick which items she's offered as substitutes.
        Suggestions = same category, equal-or-greater value, in stock. */
     let soSel = [];
     function soldOut(uid) {
       const o = ORDERS.find((x) => x.uid === uid);
-      const d = allDrops().find((x) => x.id === o.dropId) || bxCatalog.get(o.dropId);
+      const d = orderDrop(o) || bxCatalog.get(o.dropId);
       soSel = [];
       window._soBase = d;
       openModal(`
@@ -486,15 +559,25 @@
       const row = document.getElementById(uid);
       row.querySelector(".ord-actions").innerHTML =
         `<span class="ord-status" style="color:var(--gold)">Sold out · she's choosing: ${names} · or full credit</span>
-         <button class="btn btn-quiet" onclick='openStockoutModal("${d.name}", ${d.value}, ${boxPrice}, ${subsArg})'>Preview her popup</button>`;
+         <button class="btn btn-quiet" onclick='previewStockoutShelf("${d.id}", "${o.box}", ${boxPrice}, ${subsArg})'>Preview her shelf</button>`;
       row.classList.add("done");
       renderStats();
     }
 
+    /* demo: drop this sold-out pull on the shelf with her choices, then show it */
+    function previewStockoutShelf(dropId, boxName, price, subIds) {
+      const kase = CASES.find((c) => c.name === boxName) || CASES.find((c) => c.drops.some((x) => x.id === dropId)) || CASES[0];
+      const uid = "so" + Date.now().toString(36);
+      const list = getInv();
+      list.unshift({ uid, txn: "CVT-" + uid.slice(-6).toUpperCase(), caseId: kase.id, dropId, boxName: kase.name, status: "vault", ts: new Date().toISOString().slice(0, 10) });
+      setInv(list);
+      markStockout(uid, subIds, price);
+      window.open("inventory.html", "_blank");
+    }
+
     function renderStats() {
-      const liab = USERS.reduce((t, u) => t + u.balance, 0) + CREATORS.reduce((t, c) => t + c.pending, 0) + getWallet();
-      document.getElementById("opLiab").textContent = money(liab);
       document.getElementById("opPending").textContent = document.querySelectorAll("#pane-ship .ord:not(.done)").length;
+      document.getElementById("opSaved").textContent = money(savedToday);
     }
 
     /* ---------- buybacks ---------- */
@@ -503,12 +586,12 @@
       { dropId: "delina75",  who: "Sofia M. · Nashville, TN", credit: 150, when: "1h ago" },
       { dropId: "santal15",  who: "Ava R. · Columbus, OH",    credit: 31,  when: "1h ago", flag: "4th buyback today" },
       { dropId: "kayali10",  who: "Anonymous · Queens, NY",   credit: 14,  when: "2h ago" },
-      { dropId: "glossier50", who: "Priya S. · Austin, TX",   credit: 16,  when: "3h ago" },
-      { dropId: "rarekit",   who: "Nia B. · Charlotte, NC",   credit: 22,  when: "4h ago" },
+      { dropId: "lipbutter", who: "Priya S. · Austin, TX",    credit: 16,  when: "3h ago" },
+      { dropId: "lespecs",   who: "Nia B. · Charlotte, NC",   credit: 26,  when: "4h ago" },
     ];
     function renderBuybacks() {
       document.getElementById("bbFeed").innerHTML = BUYBACKS.map(b => {
-        const d = bxCatalog.get(b.dropId);
+        const d = allDrops().find(x => x.id === b.dropId);
         return `<div class="ord">
           <span class="ord-art">${productArt(d, 34)}</span>
           <div class="ord-who"><b>${d.house} ${d.name}</b><span>${b.who} · ${b.when}</span></div>
@@ -518,53 +601,40 @@
       }).join("");
     }
 
-    /* ---------- low stock (Boxes tab) ---------- */
-    function lowStockRender() {
-      const host = document.getElementById("lowStockList");
-      if (!host) return;
-      const ov = getItemOverrides();
-      const floor = getAdminSettings().stockFloor || 0;
-      const rows = [...bxCatalog.values()].filter((d) => d.stock != null && d.stock <= Math.max(3, floor) && !(ov[d.id] || {}).removed);
-      const offList = getBoxesOff();
-      host.innerHTML = rows.map((d) => {
-        const boxes = CASES.filter((c) => !c.free && c.drops.some((x) => x.id === d.id));
-        const held = floor > 0 && d.stock > 0 && d.stock < floor;
-        return `<div class="ord" style="align-items:center">
-          <span class="ord-art" style="width:36px">${productArt(d, 30)}</span>
-          <div class="ord-who" style="flex:1;min-width:220px"><b>${d.house} ${d.name} · <span style="color:${d.stock === 0 ? "#c22a4c" : "#b07c1e"}">${d.stock === 0 ? "sold out · auto-paused" : d.stock + " left"}</span>${held ? ` · <span style="color:#c22a4c">held from rolls</span>` : ""}</b>
-            <span>${boxes.length ? "in: " + boxes.map((c) => c.short + (offList.includes(c.id) ? " (off)" : "")).join(", ") : "no paid boxes"}</span></div>
-          <div class="ord-actions" style="flex-wrap:wrap">
-            ${boxes.map((c) => `<button class="btn btn-ghost" onclick="bxNew('${c.id}')">Edit ${c.short}</button><button class="btn btn-quiet" onclick="boxOffToggle('${c.id}')">${offList.includes(c.id) ? "Turn on" : "Turn off"} ${c.short}</button>`).join("")}
-            <button class="btn btn-ghost" onclick="icPause('${d.id}', ${d.paused ? "false" : "true"})">${d.paused ? "Resume item" : "Pause item"}</button>
-            <button class="btn btn-quiet" style="color:#c22a4c" onclick="icRemove('${d.id}')">Remove from boxes</button>
+    /* ---------- review queue + KYC ----------
+       Held items wait here: a KYC'd identity that already has another account
+       (the item goes to review, not auto-blocked), high-value first days,
+       3+ shipping addresses in 30 days, and KYC results that don't match the
+       attested age or state. No withdrawals exist in the MVP. */
+    const WITHDRAWALS = [
+      { uid: "w1", who: "user_7038 · Newark, NJ", what: "Free box · Daily Fragrance",       reason: "KYC identity already has an account (Jade W.)", kyc: "duplicate identity", needs: true, age: "40m old" },
+      { uid: "w2", who: "user_4492 · Dallas, TX", what: "Shipment · Burga phone case",      reason: "KYC not completed yet",                         kyc: "no ID on file",      needs: true, age: "3h old" },
+      { uid: "w3", who: "Mia K. · Miami, FL",     what: "Deposits · $650 today",            reason: "High-value first day ($500+)",                  kyc: "verified",                        age: "2h old" },
+      { uid: "w4", who: "Sofia M. · Nashville, TN", what: "Shipment · Delina Exclusif",     reason: "3 shipping addresses in 30 days",               kyc: "verified",                        age: "1d old" },
+      { uid: "w5", who: "user_5120 · Mobile, AL", what: "Account",                          reason: "KYC age 18, Alabama requires 19",               kyc: "age mismatch",       needs: true, age: "20m old" },
+    ];
+    function wdAct(uid, act) {
+      const row = document.getElementById(uid);
+      const msg = act === "release" ? `<span class="ord-status">Released · back in the normal flow</span>`
+        : act === "id" ? `<span class="ord-status" style="color:#b07c1e">ID requested · she has 7 days</span>`
+        : act === "reject" ? `<span class="ord-status" style="color:var(--muted)">Rejected · refunded to original card</span>`
+        : `<span class="ord-status" style="color:#c22a4c">Account banned</span>`;
+      row.querySelector(".ord-actions").innerHTML = msg;
+      row.classList.add("done");
+    }
+    function renderWithdrawals() {
+      document.getElementById("wdQueue").innerHTML = WITHDRAWALS.map(w => `
+        <div class="ord" id="${w.uid}">
+          <div class="ord-who" style="width:230px"><b>${w.what}</b><span>${w.who} · ${w.age}</span></div>
+          <div class="ord-cost">${w.reason}</div>
+          <span class="kyc-chip ${w.needs ? "warn" : ""}">${w.kyc}</span>
+          <div class="ord-actions">
+            <button class="btn btn-gold" onclick="wdAct('${w.uid}','release')">Release</button>
+            ${w.kyc === "no ID on file" ? `<button class="btn btn-ghost" onclick="wdAct('${w.uid}','id')">Request ID</button>` : ""}
+            <button class="btn btn-ghost" onclick="wdAct('${w.uid}','reject')">Reject &amp; refund</button>
+            <button class="btn btn-quiet" onclick="wdAct('${w.uid}','ban')">Ban</button>
           </div>
-        </div>`;
-      }).join("") || `<div class="ord" style="opacity:0.6;margin:0"><div class="ord-cost">Nothing low right now. Items with 3 or fewer left land here automatically.</div></div>`;
-    }
-    function boxOffToggle(id) {
-      setBoxOff(id, !getBoxesOff().includes(id));
-      location.reload(); /* box flags apply when data.js boots */
-    }
-    function stockFloorStep(dir) {
-      const n = Math.max(0, Math.min(10, (getAdminSettings().stockFloor || 0) + dir));
-      setAdminSetting("stockFloor", n);
-      stgRender();
-      lowStockRender();
-    }
-
-    /* ---------- settings tab ---------- */
-    function stgRender() {
-      const s = getAdminSettings();
-      document.querySelectorAll(".tgl[data-set]").forEach((t) => {
-        t.classList.toggle("on", !!s[t.dataset.set]);
-        t.onclick = () => { setAdminSetting(t.dataset.set, !getAdminSettings()[t.dataset.set]); stgRender(); };
-      });
-      const sf = document.getElementById("sfVal");
-      if (sf) { const n = getAdminSettings().stockFloor || 0; sf.textContent = n === 0 ? "off" : "under " + n; }
-      const m = document.getElementById("tglMaint");
-      if (m) m.classList.toggle("on", !!mtState());
-      const d = document.getElementById("tglDaily");
-      if (d) d.classList.toggle("on", !getDailyOverrides().allOff);
+        </div>`).join("");
     }
 
     /* ---------- stats ---------- */
@@ -576,14 +646,15 @@
         const dow = (i + 3) % 7, wknd = dow === 5 || dow === 6;
         const opens = Math.round((wknd ? 31 : 22) + r() * 12);
         const boxRev = Math.round(opens * (34 + r() * 12));
-        const shopRev = Math.round(Math.round(r() * (wknd ? 2 : 1.4)) * (110 + r() * 240));
+        r(); r(); /* Boutique is out of the MVP: no shop revenue, rolls kept so the other mock numbers don't shift */
+        const shopRev = 0;
         const cogs = Math.round(boxRev * (0.63 + r() * 0.05) + shopRev * 0.78);
         const freeCost = Math.round(105 + r() * 70);
         const buyback = Math.round(boxRev * (0.30 + r() * 0.10));
-        const trades = Math.round(buyback * (0.18 + r() * 0.10));
+        const withdrawals = Math.round(buyback * (0.18 + r() * 0.10));
         const deposits = Math.round(boxRev * (0.9 + r() * 0.25));
         const signups = Math.round((wknd ? 21 : 13) + r() * 10);
-        return { opens, boxRev, shopRev, cogs, freeCost, buyback, trades, deposits, signups };
+        return { opens, boxRev, shopRev, cogs, freeCost, buyback, withdrawals, deposits, signups };
       });
     })();
     const ST_SPAN = { day: 1, week: 7, month: 30 };
@@ -615,14 +686,13 @@
       const flows = [
         ["Box opens", fmt(sum((d) => d.boxRev)), "Revenue recognized when the roll lands. A paid sealed box on a shelf is deferred until she opens it."],
         ["Deposits taken", fmt(sum((d) => d.deposits)), "Card money in. Runs above open revenue when wallets are filling, below when credit is being spent down."],
-        ["Buyback credit issued", fmt(sum((d) => d.buyback)), "A liability, not a cost. It becomes cost only when it respends (at box margin) or transfers out."],
-        ["Free daily program", fmt(sum((d) => d.freeCost)), "Credit and shipped rares given out by the daily free boxes in the period."],
-        ["Gift cards traded", fmt(sum((d) => d.trades)), "Credit leaving as closed-loop gift cards. Priced with a built-in margin, so trades still profit."],
-        ["New signups", sum((d) => d.signups).toLocaleString(), "Accounts created in the period."],
+        ["Buyback credit issued", fmt(sum((d) => d.buyback)), "A liability, not a cost. It becomes cost only when it respends at box margin."],
+        ["Free daily program", fmt(sum((d) => d.freeCost)), "Your real marketing spend: credit and shipped rares from the daily boxes. Launch guideline $2.50 per open, tightening to $1.00."],
+        ["New signups", sum((d) => d.signups).toLocaleString(), "Accounts created. Watch this against the free program line for cost per signup."],
       ];
       document.getElementById("stFlows").innerHTML = flows.map(([k, v, tip]) =>
         `<div class="tx-row"><span>${k} <span class="info-tip" data-tip="${tip}">?</span></span><b>${v}</b></div>`).join("");
-      const shares = [["The Old Money Box", 0.41, 26], ["The It Girl Box", 0.34, 22], ["The Parisian Box", 0.25, 21]];
+      const shares = [["The Heiress Box", 0.24, 27], ["The Arm Candy Box", 0.19, 24], ["The It Girl Box", 0.16, 22], ["The Coquette Box", 0.12, 19], ["The Date Night Box", 0.09, 21]];
       const boxRevTot = sum((d) => d.boxRev);
       document.getElementById("stBoxes").innerHTML = shares.map(([name, sh, mg]) =>
         `<div class="tx-row"><span>${name}</span><span class="micro">${Math.round(sh * 100)}% of open revenue · ${mg}% margin</span><b>${fmt(boxRevTot * sh)}</b></div>`).join("");
@@ -639,7 +709,6 @@
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("thSel").value = holidayTheme();
       mtRender();
-      stgRender();
       stRender("week");
     });
 
@@ -729,14 +798,74 @@
       f.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
+    /* ---------- the shop ---------- */
+    function shSave(list) {
+      localStorage.setItem(LS_SHOP, JSON.stringify(list));
+      shopListRender();
+    }
+    function shSearchRender() {
+      const q = document.getElementById("shSearch").value.trim().toLowerCase();
+      const host = document.getElementById("shResults");
+      if (q.length < 2) { host.innerHTML = ""; return; }
+      const have = new Set(getShopItems().map((x) => x.id));
+      const hits = [...bxCatalog.values()]
+        .filter((d) => !have.has(d.id) && (d.house + " " + d.name).toLowerCase().includes(q))
+        .slice(0, 6);
+      host.innerHTML = hits.map((d) =>
+        `<button class="bx-hit" onclick="shAdd('${d.id}')">${d.house} ${d.name} · shown $${d.value}${d.manual ? ' · <span style="color:#b07c1e">custom</span>' : ""}</button>`).join("");
+    }
+    function shAdd(id) {
+      const d = bxCatalog.get(id);
+      const list = getShopItems().slice();
+      /* default shop price: shown value nudged up to a cute number (anchor rule) */
+      const raw = d.value * 1.04;
+      const cute = raw < 100 ? Math.ceil(raw / 5) * 5 : raw < 500 ? Math.ceil(raw / 10) * 10 : Math.ceil(raw / 50) * 50;
+      list.push({ id, price: cute, cost: Math.round(bxCostGuess(d)) });
+      document.getElementById("shSearch").value = "";
+      document.getElementById("shResults").innerHTML = "";
+      shSave(list);
+    }
+    function shSetPrice(id) {
+      const v = parseFloat(document.getElementById("shp_" + id).value);
+      const c = parseFloat(document.getElementById("shc_" + id).value);
+      if (!v) return;
+      const list = getShopItems().map((x) => (x.id === id ? { ...x, price: v, ...(isNaN(c) ? {} : { cost: c }) } : x));
+      shSave(list);
+    }
+    function shRemove(id) {
+      shSave(getShopItems().filter((x) => x.id !== id));
+    }
+    function shopListRender() {
+      const host = document.getElementById("shopList");
+      if (!host) return;
+      host.innerHTML = getShopItems().map(({ id, price, cost }) => {
+        const d = bxCatalog.get(id);
+        if (!d) return "";
+        const c = cost != null ? cost : Math.round(bxCostGuess(d));
+        const profit = price - c;
+        const thin = profit < price * 0.2;
+        const below = price < d.value;
+        return `<div class="ord">
+          <span class="ord-art" style="width:36px">${productArt(d, 30)}</span>
+          <div class="ord-who" style="flex:1"><b>${d.house} ${d.name}</b><span>shown $${d.value} · profit <b style="color:${thin ? "#c22a4c" : "#3f9d63"}">$${profit}</b>${thin ? " ⚑ under the 20% floor" : ""}${below ? ' · <b style="color:#c22a4c">⚑ shop price below shown value, breaks the anchor</b>' : ""}</span></div>
+          <label class="micro">costs us $<input id="shc_${id}" type="number" min="0" value="${c}" style="width:74px;padding:8px 10px;border:1px solid var(--line-soft);border-radius:10px" /></label>
+          <label class="micro">shop $<input id="shp_${id}" type="number" min="1" value="${price}" style="width:84px;padding:8px 10px;border:1px solid var(--line-soft);border-radius:10px" /></label>
+          <div class="ord-actions">
+            <button class="btn btn-ghost" onclick="shSetPrice('${id}')">Save</button>
+            <button class="btn btn-quiet" onclick="shRemove('${id}')">✕</button>
+          </div>
+        </div>`;
+      }).join("") || `<div class="ord" style="opacity:0.6"><div class="ord-cost">Shop is empty. Search above to add pieces.</div></div>`;
+    }
+
     /* ---------- homepage hero cards ---------- */
     const HC_IMGS = [["hero-perfume", "perfume · roses"], ["hero-perfume2", "perfume · black"], ["hero-bag", "bag · floral"], ["hero-bag2", "bag · tan"], ["hero-watch", "watch"], ["hero-jewel", "bracelet"]];
     const HC_DEFAULT = { sets: [
       [{ img: "hero-perfume", name: "Coco Mademoiselle", tag: "In boxes now", hot: true },
-       { img: "hero-bag", name: "Ferragamo Studio Bag", tag: "The Arm Candy Box", hot: true },
+       { img: "hero-bag", name: "Ferragamo Studio Bag", tag: "The Handbag Box", hot: true },
        { img: "hero-watch", name: "IWC Portugieser", tag: "The Heiress Box", hot: false }],
-      [{ img: "hero-jewel", name: "Diamond Tennis Bracelet", tag: "In boxes now", hot: false },
-       { img: "hero-bag2", name: "Vintage Top Handle", tag: "The Arm Candy Box", hot: true },
+      [{ img: "hero-jewel", name: "Diamond Tennis Bracelet", tag: "The Ice Box", hot: false },
+       { img: "hero-bag2", name: "Vintage Top Handle", tag: "The Handbag Box", hot: true },
        { img: "hero-perfume2", name: "Coco Noir", tag: "The Parisian Box", hot: false }],
     ]};
     function hcCurrent() {
@@ -777,25 +906,56 @@
     /* ---------- buyback dial ---------- */
     function bbExample() {
       const r = parseFloat(document.getElementById("bbRate").value);
-      const fr = parseFloat(document.getElementById("bbFreeRate").value);
-      if (!(r >= 40 && r <= 95) || !(fr >= 50 && fr <= 100)) { document.getElementById("bbEx").innerHTML = `paid 40-95 · free rares 50-100`; return; }
-      const dirty = r / 100 !== BUYBACK_RATE || fr / 100 !== FREE_RARE_RATE;
+      if (!(r >= 40 && r <= 95)) { document.getElementById("bbEx").innerHTML = `40-95`; return; }
+      const dirty = r / 100 !== BUYBACK_RATE;
       document.getElementById("bbEx").innerHTML =
-        `$79-cost item → paid-box offer <b>$${Math.floor(79 * r / 100)}</b> · free-rare offer <b>$${Math.floor(79 * fr / 100)}</b> (floored)` +
+        `$79-cost item → offer <b>$${Math.floor(79 * r / 100)}</b> (floored)` +
         (dirty ? ` · <b style="color:#b07c1e">not applied yet</b>` : ` · live`);
     }
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("bbRate").value = String(Math.round(BUYBACK_RATE * 100));
-      document.getElementById("bbFreeRate").value = String(Math.round(FREE_RARE_RATE * 100));
       bbExample();
     });
     function bbSave() {
       const r = Math.floor(parseFloat(document.getElementById("bbRate").value));
-      const fr = Math.floor(parseFloat(document.getElementById("bbFreeRate").value));
-      if (!(r >= 40 && r <= 95) || !(fr >= 50 && fr <= 100)) return;
+      if (!(r >= 40 && r <= 95)) return;
       localStorage.setItem("covet_buyback_rate", String(r));
-      localStorage.setItem("covet_free_rare_rate", String(fr));
-      location.reload(); /* rates apply when data.js boots */
+      location.reload(); /* rate applies when data.js boots */
+    }
+
+    /* ---------- wishlist box pricing ---------- */
+    function wpRead() {
+      return {
+        profitPct: parseFloat(document.getElementById("wpProfit").value),
+        shipping: parseFloat(document.getElementById("wpShip").value),
+        valuePct: parseFloat(document.getElementById("wpValue").value),
+      };
+    }
+    function wpExample() {
+      const w = wpRead();
+      if (!(w.profitPct >= 0 && w.profitPct <= 200 && w.shipping >= 0 && w.shipping <= 100 && w.valuePct >= 50 && w.valuePct <= 150)) {
+        document.getElementById("wpEx").innerHTML = "profit 0-200 · ship 0-100 · value 50-150"; return;
+      }
+      /* worked example: a wishlist whose odds-weighted value is $200 and cost is $150 */
+      const byValue = Math.ceil(200 * w.valuePct / 100), floor = Math.ceil(150 * (1 + w.profitPct / 100) + w.shipping);
+      const live = getWishPricing();
+      const dirty = ["profitPct", "shipping", "valuePct"].some((k) => w[k] !== live[k]);
+      document.getElementById("wpEx").innerHTML =
+        `$200 value / $150 cost → <b>$${Math.max(10, byValue, floor)}</b> (${floor > byValue ? "floor" : "value"})` +
+        (dirty ? ` · <b style="color:#b07c1e">not applied yet</b>` : ` · live`);
+    }
+    document.addEventListener("DOMContentLoaded", () => {
+      const w = getWishPricing();
+      document.getElementById("wpProfit").value = w.profitPct;
+      document.getElementById("wpShip").value = w.shipping;
+      document.getElementById("wpValue").value = w.valuePct;
+      wpExample();
+    });
+    function wpSave() {
+      const w = wpRead();
+      if (!(w.profitPct >= 0 && w.profitPct <= 200 && w.shipping >= 0 && w.shipping <= 100 && w.valuePct >= 50 && w.valuePct <= 150)) return;
+      localStorage.setItem("covet_wish_pricing", JSON.stringify(w));
+      wpExample();
     }
 
     /* ---------- box builder ---------- */
@@ -804,7 +964,6 @@
     const bxCatalog = (() => {
       const seen = new Map();
       for (const c of CASES) for (const d of c.drops) if (!seen.has(d.id)) seen.set(d.id, d);
-      for (const f of (typeof FREE_BOXES !== "undefined" ? FREE_BOXES : [])) for (const d of f.drops) if (!seen.has(d.id)) seen.set(d.id, d);
       for (const d of (typeof EXTRA_DROPS !== "undefined" ? EXTRA_DROPS : [])) if (!seen.has(d.id)) seen.set(d.id, d);
       return seen;
     })();
@@ -894,7 +1053,14 @@
       lib.push(d);
       localStorage.setItem(LS_CUSTOM_ITEMS, JSON.stringify(lib));
       bxCatalog.set(id, d);
-      ["mfHouse", "mfName", "mfValue", "mfCost", "mfBB", "mfStock"].forEach((x) => (document.getElementById(x).value = ""));
+      if (document.getElementById("mfShop").checked) {
+        let sp = parseFloat(document.getElementById("mfShopP").value);
+        if (!sp) { const raw = value * 1.04; sp = raw < 100 ? Math.ceil(raw / 5) * 5 : raw < 500 ? Math.ceil(raw / 10) * 10 : Math.ceil(raw / 50) * 50; }
+        shSave(getShopItems().filter((x) => x.id !== id).concat([{ id, price: sp, cost }]));
+      }
+      document.getElementById("mfShop").checked = false;
+      document.getElementById("mfShopPrice").style.display = "none";
+      ["mfHouse", "mfName", "mfValue", "mfCost", "mfBB", "mfStock", "mfShopP"].forEach((x) => (document.getElementById(x).value = ""));
       mfImgReset();
       toggleManForm();
       document.getElementById("icSearch").value = house;
@@ -1009,7 +1175,7 @@
         if (it.cost == null) it.cost = bxCostGuess(d);
         if (it.value == null) it.value = d.value;
         if (it.rarity == null) it.rarity = d.rarity || "reserve";
-        const rOpt = (r) => `<option value="${r}" ${it.rarity === r ? "selected" : ""}>${r}</option>`;
+        const rOpt = (r) => `<option value="${r}" ${it.rarity === r ? "selected" : ""}>${RARITY[r].label}</option>`;
         return `<div class="bx-row">
           <span style="flex:1"><b>${d.house} ${d.name}</b>${d.dtc ? " · ⚑ dtc" : ""}${d.manual ? " · ⚑ manual fulfillment" : ""}</span>
           <label class="micro">tier <select onchange="bx.items[${i}].rarity = this.value" style="padding:8px 10px;border:1px solid var(--line-soft);border-radius:10px">${rOpt("signature")}${rOpt("reserve")}${rOpt("archive")}${rOpt("grail")}</select></label>
@@ -1030,7 +1196,7 @@
       const creditOf = (i) => {
         const d = bxCatalog.get(i.id);
         if (d.bb != null) return d.bb; /* explicit per-item offer */
-        return mode === "cost" ? (i.cost || 0) * 0.8 : (i.value != null ? i.value : d.value) * 0.65;
+        return mode === "cost" ? (i.cost || 0) * BUYBACK_RATE : (i.value != null ? i.value : d.value) * 0.65;
       };
       const evCredit = bx.items.reduce((a, i) => a + creditOf(i) * (i.odds || 0) / 100, 0);
       const evCost = bx.items.reduce((a, i) => a + (i.cost || 0) * (i.odds || 0) / 100, 0);
@@ -1061,7 +1227,7 @@
         const rich = avgCredit > 2.5 || avgCost > 10;
         document.getElementById("bxMeter").innerHTML =
           `Odds total <b style="color:${okSum ? "#3f9d63" : "#c22a4c"}">${sum.toFixed(1)}%</b> (needs 100)<br>
-           Worst case she ships everything: <b style="color:${avgCost > 10 ? "#c22a4c" : "inherit"}">$${avgCost.toFixed(2)}</b> per open <span class="info-tip" data-tip="Each item's odds × our sourcing cost, summed. The average cash cost per open if every pull shipped. A ceiling, not reality: before her first purchase she can only ever ship one free pull. Flags red over $10.">?</span> · everyone trades instead: <b style="color:${avgCredit > 2.5 ? "#c22a4c" : "inherit"}">$${avgCredit.toFixed(2)}</b> per open in credit <span class="info-tip" data-tip="Each item's odds × its buyback offer, summed. The average credit paid per open when the customer takes the trade. Flags red over $2.50.">?</span>${rich ? `<br><b style="color:#c22a4c">⚑ rich for a free box · flags when credit tops $2.50/open or ship-worst tops $10</b>` : ""}`;
+           Worst case she ships everything: <b style="color:${avgCost > 10 ? "#c22a4c" : "inherit"}">$${avgCost.toFixed(2)}</b> per open <span class="info-tip" data-tip="Each item's odds × our sourcing cost, summed. The average cash cost per open if every pull shipped. A ceiling, not reality: before her first purchase she can only ever ship one free pull. Flags red over $10.">?</span> · everyone trades instead: <b style="color:${avgCredit > 2.5 ? "#c22a4c" : "inherit"}">$${avgCredit.toFixed(2)}</b> per open in credit <span class="info-tip" data-tip="Each item's odds × its buyback offer, summed. The average credit paid per open when she takes the trade, which the reveal popup steers her toward. This is your real daily marketing cost. Flags red over $2.50, the launch guideline; after the initial marketing push, tighten mid-tier offers and tail odds toward $1.00 per open.">?</span>${rich ? `<br><b style="color:#c22a4c">⚑ rich for a free box · guideline: credit under $2.50/open, ship-worst under $10</b>` : ""}`;
         document.getElementById("bxSaveBtn").disabled = !(okSum && bx.items.length >= 2 && document.getElementById("bxName").value.trim());
         return;
       }
@@ -1103,7 +1269,7 @@
         o[o.indexOf(Math.max(...o))] += drift;
         const mode = document.getElementById("bxRateMode").value;
         const ev = mode === "cost"
-          ? bx.items.reduce((a, i, j) => a + (i.cost || 0) * 0.8 * o[j] / 100, 0) / price
+          ? bx.items.reduce((a, i, j) => a + (i.cost || 0) * BUYBACK_RATE * o[j] / 100, 0) / price
           : bx.items.reduce((a, i, j) => a + bxCatalog.get(i.id).value * 0.65 * o[j] / 100, 0) / price;
         best = o;
         const target = mode === "cost" ? 0.45 : 0.80;
@@ -1165,14 +1331,12 @@
       document.getElementById("bxList").innerHTML = list.map((b) => {
         const ev = b.drops.reduce((a, d) => a + buybackFor(b, d) * d.odds / 100, 0) / (b.price || 1);
         const authored = b.id.startsWith("adm_");
-        const isOff = getBoxesOff().includes(b.id);
-        const status = (authored ? "yours" : mine.has(b.id) ? "edited" : "placeholder") + (isOff ? ' · <b style="color:#c22a4c">OFF</b>' : "");
+        const status = authored ? "yours" : mine.has(b.id) ? "edited" : "placeholder";
         return `<div class="ord">
           <div class="ord-who" style="width:280px"><b>${b.name}</b><span>${status} · $${b.price} · ${b.drops.length} items</span></div>
           <div class="ord-cost">credit EV ${(ev * 100).toFixed(0)}% of price</div>
           <div class="ord-actions">
             <button class="btn btn-ghost" onclick="bxNew('${b.id}')">Edit</button>
-            <button class="btn btn-quiet" onclick="boxOffToggle('${b.id}')">${isOff ? "Turn on" : "Turn off"}</button>
             <a class="btn btn-ghost" href="case.html?c=${b.id}" target="_blank">View</a>
             ${authored ? `<button class="btn btn-quiet" onclick="bxDelete('${b.id}')">✕</button>`
               : mine.has(b.id) ? `<button class="btn btn-quiet" onclick="bxRevert('${b.id}')">Revert</button>` : ""}
@@ -1192,9 +1356,8 @@
       const el = document.getElementById("gwNew");
       el.style.display = el.style.display === "none" ? "" : "none";
       if (el.style.display === "") {
-        /* default the draw date to next Sunday */
-        const d = new Date();
-        d.setDate(d.getDate() + ((7 - d.getDay()) % 7 || 7));
+        /* default the draw date to the next draw: next Sunday, or the end of the month */
+        const d = new Date(gwNextDraw() - 864e5);
         document.getElementById("ngDate").value = d.toISOString().slice(0, 10);
         document.getElementById("ngPrize").focus();
       }
@@ -1230,11 +1393,19 @@
       confettiBurst();
       document.getElementById("gwDraw").outerHTML = `<span class="ord-status">Winner: ${name} · drawn via random.org (signed) · notified by email · announce when she confirms</span>`;
     }
+    /* weekly vs monthly: one switch, every giveaway word and the countdown follow it */
+    function setGwCadence(c) {
+      try { localStorage.setItem("covet_gw_cadence", c); } catch {}
+      const gw = gwTerms();
+      document.querySelectorAll("[data-gw]").forEach((el) => { if (gw[el.dataset.gw]) el.textContent = gw[el.dataset.gw]; });
+      ["weekly", "monthly"].forEach((k) => document.getElementById("gwc-" + k).classList.toggle("on", k === gwCadence()));
+    }
     function renderGiveaway() {
+      setGwCadence(gwCadence());
       document.getElementById("gwPrize").textContent = GIVEAWAY.prize.replace(/^a /i, "");
       document.getElementById("gwPast").innerHTML = [
-        ["Lena R.", "Lady Dior Mini, vintage", "last week"],
-        ["Carmen D.", "Baccarat Rouge 540 70ml", "two weeks ago"],
+        ["Lena R.", "Lady Dior Mini, vintage", `last ${gwTerms().period}`],
+        ["Carmen D.", "Baccarat Rouge 540 70ml", `two ${gwTerms().period}s ago`],
       ].map(([who, prize, when]) => `
         <div class="ord" style="opacity:0.65">
           <div class="ord-who" style="width:210px"><b>${who}</b><span>won ${when}</span></div>
@@ -1248,27 +1419,27 @@
       { uid: "u2", name: "Mia K.",     where: "Miami, FL · joined Jun 2026",    opens: 4820, buyback: 38, balance: 96.10,  entries: 214, kyc: true,  flag: null },
       { uid: "u3", name: "Ava R.",     where: "Columbus, OH · joined Jul 2026", opens: 310,  buyback: 92, balance: 201.75, entries: 44,  kyc: false, flag: "heavy cycler" },
       { uid: "u4", name: "Sofia M.",   where: "Nashville, TN · joined Jul 2026",opens: 1730, buyback: 51, balance: 12.20,  entries: 130, kyc: true,  flag: null, creator: true },
-      { uid: "u5", name: "user_4492",  where: "Dallas, TX · joined Aug 2026",   opens: 62,   buyback: 88, balance: 58.00,  entries: 12,  kyc: false, flag: "gift card trade pending, no KYC" },
+      { uid: "u5", name: "user_4492",  where: "Dallas, TX · joined Aug 2026",   opens: 62,   buyback: 88, balance: 58.00,  entries: 12,  kyc: false, flag: "shipment held, no KYC" },
       { uid: "u6", name: "Elena K.",   where: "Phoenix, AZ · joined Aug 2026",  opens: 118,  buyback: 22, balance: 4.60,   entries: 26,  kyc: false, flag: null },
     ];
     const USER_TX = {
-      u1: [["Deposit", 500, "Aug 14"], ["Opened · Heiress Box", -1500, "Aug 14"], ["Buyback · Cartier Love", 3465, "Aug 14"], ["Gift card trade · Sephora", -320, "Aug 15"], ["Opened · Arm Candy Box", -250, "Aug 16"]],
+      u1: [["Deposit", 500, "Aug 14"], ["Opened · Heiress Box", -1500, "Aug 14"], ["Buyback · Cartier Love", 3465, "Aug 14"], ["Opened · Arm Candy Box", -250, "Aug 16"]],
       u2: [["Deposit", 100, "Aug 12"], ["Opened · It Girl Box", -25, "Aug 12"], ["Buyback · Delina", 17, "Aug 12"], ["Creator claim", 96.40, "Aug 15"], ["Opened · Vanity Box", -30, "Aug 16"]],
       u3: [["Deposit", 60, "Aug 10"], ["Opened · Charm Box", -6, "Aug 16"], ["Buyback · Sonny Angel", 8.40, "Aug 16"], ["Opened · Charm Box", -6, "Aug 16"], ["Buyback · Labubu", 15.40, "Aug 16"], ["Opened · Ritual Box", -8, "Aug 16"], ["Buyback · Palo Santo", 6.30, "Aug 16"]],
       u4: [["Deposit", 50, "Jul 30"], ["Opened · Date Night Box", -35, "Aug 02"], ["Shipped · Black Opium", 0, "Aug 03"]],
-      u5: [["Deposit", 120, "Aug 15"], ["Opened · Phone Case Box", -15, "Aug 15"], ["Buyback · Burga case", 19.60, "Aug 15"], ["Gift card trade · Ulta", -62, "Aug 16"]],
+      u5: [["Deposit", 120, "Aug 15"], ["Opened · Phone Case Box", -15, "Aug 15"], ["Buyback · Burga case", 19.60, "Aug 15"]],
       u6: [["Free daily box", 0, "Aug 15"], ["Buyback · scent stick", 4.60, "Aug 15"], ["Free daily box", 0, "Aug 16"]],
     };
     const uOpen = new Set();
     const uShelf = new Set();
     /* demo shelves: what each user is holding right now */
     const USER_SHELF = {
-      u1: [["coromandel", "vault", "The Parisian Box", "Aug 14", "0.8%", "CVT-M4QH2A"], ["br540_70", "shipping", "The Old Money Box", "Aug 15", "2.2%", "CVT-M5AK7F"], ["br540ext", "sold", "The It Girl Box", "Aug 14", "0.1%", "CVT-M4QG9C"]],
-      u2: [["delina75", "vault", "The It Girl Box", "Aug 12", "4.5%", "CVT-M2XR4B"], ["cocomad", "shipping", "The Old Money Box", "Aug 16", "8.3%", "CVT-M6BT8D"]],
-      u3: [["labubu", "sold", "The Daily Luck Box", "Aug 16", "2.9%", "CVT-M6CU1E"], ["palosanto", "sold", "The Daily Luck Box", "Aug 15", "30%", "CVT-M5DV3G"], ["incense", "vault", "The Daily Luck Box", "Aug 16", "58%", "CVT-M6EW5H"]],
-      u4: [["sideeff30", "shipping", "The It Girl Box", "Aug 02", "91.7%", "CVT-LQFX7J"]],
-      u5: [["libre10", "sold", "The Daily Fragrance Box", "Aug 15", "9%", "CVT-M5GY9K"]],
-      u6: [["scentstick", "vault", "The Daily Fragrance Box", "Aug 16", "30%", "CVT-M6HZ2L"]],
+      u1: [["cartierlove", "vault", "The Heiress Box", "Aug 14", "0.8%", "CVT-M4QH2A"], ["br540_70", "shipping", "The Old Money Box", "Aug 15", "2.2%", "CVT-M5AK7F"], ["classicflap", "sold", "The Arm Candy Box", "Aug 14", "0.1%", "CVT-M4QG9C"]],
+      u2: [["delina75", "vault", "The Coquette Box", "Aug 12", "4.5%", "CVT-M2XR4B"], ["cocomad", "shipping", "The Rich Mom Box", "Aug 16", "8.3%", "CVT-M6BT8D"]],
+      u3: [["incense", "sold", "The Daily Luck Box", "Aug 15", "99.9%", "CVT-M5DV3G"], ["incense", "vault", "The Daily Luck Box", "Aug 16", "99.9%", "CVT-M6EW5H"]],
+      u4: [["blackop30", "shipping", "The Date Night Box", "Aug 02", "91.7%", "CVT-LQFX7J"]],
+      u5: [["tealights", "sold", "The Daily Fragrance Box", "Aug 15", "99.8%", "CVT-M5GY9K"]],
+      u6: [["tealights", "vault", "The Daily Fragrance Box", "Aug 16", "99.8%", "CVT-M6HZ2L"]],
     };
     /* every roll gets a public id. In production the id keys the full round
        record (server seed, client seed, nonce, odds band, timestamps); here
@@ -1286,7 +1457,7 @@
       try {
         for (const it of JSON.parse(localStorage.getItem("covet_inventory")) || []) {
           if (it.txn && it.txn.toUpperCase().includes(q))
-            hits.push({ txn: it.txn, uid: null, who: "You (this browser's customer session)", did: it.dropId, st: it.status, box: it.boxName, when: it.ts, odds: it.odds != null ? it.odds + "%" : "·", seed: it.seed });
+            hits.push({ txn: it.txn, uid: null, who: "You (this browser's customer session)", did: it.dropId, st: it.status, box: it.boxName, when: it.ts, odds: it.odds != null ? it.odds + "%" : "—", seed: it.seed });
         }
       } catch {}
       host.innerHTML = hits.slice(0, 5).map((h) => {
@@ -1305,10 +1476,11 @@
     /* ---------- maintenance mode ---------- */
     function mtState() { try { return JSON.parse(localStorage.getItem("covet_maintenance")) || null; } catch { return null; } }
     function mtRender() {
-      const m = mtState();
-      const t = document.getElementById("tglMaint");
-      if (t) t.classList.toggle("on", !!m);
-      if (m && m.msg && document.activeElement !== document.getElementById("mtMsg")) document.getElementById("mtMsg").value = m.msg;
+      const m = mtState(); const b = document.getElementById("mtBtn");
+      if (!b) return;
+      b.textContent = m ? "Bring the site back" : "Pause the site";
+      b.style.background = m ? "#c22a4c" : "";
+      if (m && m.msg) document.getElementById("mtMsg").value = m.msg;
     }
     function mtToggle() {
       if (mtState()) localStorage.removeItem("covet_maintenance");
@@ -1336,7 +1508,7 @@
       renderUsers();
     }
     /* flags are notes to YOURSELF (and any future teammate): the reason
-       shows on the row, persists, and flagged users' transfers hold for
+       shows on the row, persists, and flagged users' shipments hold for
        manual review instead of auto-paying. */
     function getFlags() {
       try { return JSON.parse(localStorage.getItem("covet_admin_flags")) || {}; } catch { return {}; }
@@ -1355,8 +1527,8 @@
       openModal(`
         <span class="eyebrow">Flag ${u.name}</span>
         <h2>Leave yourself the reason</h2>
-        <p class="modal-sub">The note shows on this profile, and this account's transfers hold for your manual review instead of auto-paying until you unflag.</p>
-        <div class="field" style="text-align:left"><label>Reason</label><input id="flagReason" maxlength="60" placeholder="heavy cycler, verify next transfer" /></div>
+        <p class="modal-sub">The note shows on this profile, and this account's shipments and free boxes hold for your manual review until you unflag.</p>
+        <div class="field" style="text-align:left"><label>Reason</label><input id="flagReason" maxlength="60" placeholder="heavy cycler, check next shipment" /></div>
         <div class="modal-actions">
           <button class="btn btn-gold" onclick="uFlagSave('${uid}')">Flag account</button>
           <button class="btn btn-quiet" onclick="closeModal()">Cancel</button>
@@ -1365,7 +1537,7 @@
       setTimeout(() => document.getElementById("flagReason").focus(), 50);
     }
     function uFlagSave(uid) {
-      const reason = (document.getElementById("flagReason").value || "").trim() || "review before next transfer";
+      const reason = (document.getElementById("flagReason").value || "").trim() || "review before next shipment";
       const flags = getFlags();
       flags[uid] = reason;
       localStorage.setItem("covet_admin_flags", JSON.stringify(flags));
@@ -1383,13 +1555,15 @@
       row.querySelector(".ord-actions").innerHTML = msg;
       row.classList.add("done");
     }
+    /* creator flag: creator earnings are paid as Covet credit (no cash
+       payouts in the MVP). */
     function uCreator(uid) {
       const u = USERS.find(x => x.uid === uid);
       u.creator = !u.creator;
       renderUsers();
     }
     /* refundable = deposits minus spend on opens, capped by balance.
-       Buyback credit is never refundable; it transfers instead. */
+       Buyback credit is never refundable; it stays as box credit. */
     function uRefundable(uid) {
       const tx = USER_TX[uid] || [];
       const dep = tx.filter(([w]) => w.startsWith("Deposit")).reduce((a, [, v]) => a + v, 0);
@@ -1407,7 +1581,7 @@
       document.getElementById(uid + "-edit").innerHTML = `
         <div class="tx-panel" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
           <span class="micro" style="flex:1;min-width:220px">Deposited <b>${money(dep)}</b> · spent on opens <b>${money(spent)}</b> · balance <b>${money(u.balance)}</b><br>
-          <b style="color:var(--ink)">Refundable to original card: ${money(r)}</b> · the rest is buyback credit (transfer only)</span>
+          <b style="color:var(--ink)">Refundable to original card: ${money(r)}</b> · the rest is buyback credit (boxes only, not refundable)</span>
           <input id="rf-${uid}" type="number" min="0.01" max="${r}" step="0.01" value="${r.toFixed(2)}" style="width:110px;padding:9px 12px;border:1px solid var(--line-soft);border-radius:10px" ${r <= 0 ? "disabled" : ""} />
           <button class="btn btn-gold" ${r <= 0 ? "disabled" : ""} onclick="uRefundGo('${uid}')">Refund to card</button>
           <button class="btn btn-quiet" onclick="document.getElementById('${uid}-edit').innerHTML=''">Cancel</button>
@@ -1468,6 +1642,7 @@
             <button class="btn btn-ghost" onclick="uToggleShelf('${u.uid}')">${uShelf.has(u.uid) ? "Hide shelf" : "Shelf"}</button>
             <button class="btn btn-ghost" onclick="uEditBal('${u.uid}')">Edit balance</button>
             <button class="btn btn-ghost" onclick="uRefund('${u.uid}')">Refund</button>
+            <button class="btn btn-ghost" onclick="uCreator('${u.uid}')">${u.creator ? "Remove creator" : "Creator lane"}</button>
             <button class="btn btn-ghost" onclick="uFlag('${u.uid}')">${u.flag ? "Unflag" : "Flag"}</button>
             <button class="btn btn-quiet" onclick="uAct('${u.uid}','ban')">Suspend</button>
             <button class="btn btn-quiet" style="color:#c22a4c" onclick="uAct('${u.uid}','permban')">Ban</button>
@@ -1478,7 +1653,7 @@
         <div class="tx-panel">
           ${(USER_TX[u.uid] || []).slice().reverse().map(([what, amt, when]) => `
             <div class="tx-row"><span>${what}</span><span class="micro">${when}</span>
-              <b style="color:${amt > 0 ? "#2c8a4b" : amt < 0 ? "var(--gold)" : "var(--muted)"}">${amt === 0 ? "·" : (amt > 0 ? "+" : "") + money(amt)}</b>
+              <b style="color:${amt > 0 ? "#2c8a4b" : amt < 0 ? "var(--gold)" : "var(--muted)"}">${amt === 0 ? "—" : (amt > 0 ? "+" : "") + money(amt)}</b>
             </div>`).join("")}
         </div>` : ""}
         ${uShelf.has(u.uid) ? `
@@ -1509,9 +1684,9 @@
         ["them", "hii! I shipped my classic flap pull 3 days ago and the tracking hasn't moved 😭", "12m ago"],
         ["them", "order #4821 if that helps", "11m ago"],
       ]},
-      { tid: "t2", who: "user_4492", subject: "Gift card stuck on review", age: "1h", status: "waiting", msgs: [
-        ["them", "my $62 gift card says under review, how long does this take?", "1h ago"],
-        ["me", "Hi love! First trades need a quick ID check, so I've just sent the secure link to your email, takes 2 minutes ♥", "50m ago"],
+      { tid: "t2", who: "user_4492", subject: "Shipment stuck on review", age: "1h", status: "waiting", msgs: [
+        ["them", "my phone case shipment says under review, how long does this take?", "1h ago"],
+        ["me", "Hi love! First shipments need a quick ID check, I've just sent the secure link to your email, takes 2 minutes ♥", "50m ago"],
       ]},
       { tid: "t3", who: "Nia B.", subject: "Wrong shade shipped", age: "3h", status: "open", msgs: [
         ["them", "the lip butter duo came in the wrong shades, I pulled vanilla + brown sugar", "3h ago"],
@@ -1578,78 +1753,52 @@
       { uid: "c3", code: "JADEGETS", who: "Jade W. · TikTok 130k",   refs: 402, opens: 9480, tier: "Icon",       pending: 379.20 },
       { uid: "c4", code: "NIAB",     who: "Nia B. · TikTok 6k",      refs: 12,  opens: 240,  tier: "Covet Girl", pending: 2.40 },
     ];
-    function crAct(uid) {
+    function crAct(uid, act) {
       const row = document.getElementById(uid);
-      row.querySelector(".ord-actions").innerHTML = `<span class="ord-status" style="color:var(--muted)">Suspended · code disabled</span>`;
+      row.querySelector(".ord-actions").innerHTML = act === "pay"
+        ? `<span class="ord-status">Claim approved · credited to her balance</span>`
+        : `<span class="ord-status" style="color:var(--muted)">Suspended · code disabled</span>`;
       row.classList.add("done");
     }
     function renderCreators() {
-      const q = ((document.getElementById("crSearch") || {}).value || "").trim().toLowerCase();
-      const ranked = [...CREATORS].sort((x, y) => y.opens - x.opens)
-        .filter((c) => !q || (c.code + " " + c.who).toLowerCase().includes(q));
-      document.getElementById("crList").innerHTML = ranked.map((c, i) => `
+      document.getElementById("crList").innerHTML = CREATORS.map(c => `
         <div class="ord" id="${c.uid}">
-          <span class="avat" style="background:var(--gold-dim);color:var(--gold)">${i + 1}</span>
           <div class="ord-who"><b>${c.code}</b><span>${c.who}</span></div>
           <div class="ord-cost"><b>${c.refs}</b> referrals · <b>${money(c.opens)}</b> opened by them</div>
           <span class="tier-chip">${c.tier}</span>
-          <div class="ord-cost" style="flex:0 0 auto">Accrued <b>${money(c.pending)}</b> · auto-credits</div>
+          <div class="ord-cost" style="flex:0 0 auto">Earned <b>${money(c.pending)}</b> · credited automatically</div>
           <div class="ord-actions">
-            <button class="btn btn-ghost" onclick="crEditCode('${c.uid}')">Edit code</button>
-            <button class="btn btn-quiet" onclick="crAct('${c.uid}')">Suspend</button>
+            <button class="btn btn-quiet" onclick="crAct('${c.uid}','ban')">Suspend</button>
           </div>
-        </div>`).join("") || `<div class="ord" style="opacity:0.6"><div class="ord-cost">No creators match.</div></div>`;
-    }
-    function crEditCode(uid) {
-      const c = CREATORS.find((x) => x.uid === uid);
-      openModal(`
-        <span class="eyebrow">${c.who}</span>
-        <h2>Edit her code</h2>
-        <p class="modal-sub">Current code: <b style="color:var(--ink)">${c.code}</b>. Changing it retires the old code instantly; her referrals and earnings stay attached to her account. Use it when a code needs reclaiming.</p>
-        <div class="field" style="text-align:left"><label>New code · letters and numbers, 3 to 12</label>
-          <input id="crNewCode" maxlength="12" value="${c.code}" style="text-transform:uppercase" /></div>
-        <div class="modal-actions" style="margin-top:12px">
-          <button class="btn btn-gold" onclick="crSaveCode('${uid}')">Save code</button>
-          <button class="btn btn-quiet" onclick="closeModal()">Cancel</button>
-        </div>`);
-    }
-    function crSaveCode(uid) {
-      const v = (document.getElementById("crNewCode").value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-      if (v.length < 3) { document.getElementById("crNewCode").focus(); return; }
-      const c = CREATORS.find((x) => x.uid === uid);
-      const oldCode = c.code;
-      c.code = v;
-      closeModal();
-      renderCreators();
-      const row = document.getElementById(uid);
-      if (row) row.querySelector(".ord-who span").innerHTML = `${c.who} · <b style="color:#b07c1e">code changed from ${oldCode}</b>`;
+        </div>`).join("");
     }
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("queue").innerHTML = ORDERS.map(o => {
-        const d = bxCatalog.get(o.dropId);
+        const d = orderDrop(o);
+        const cheaper = o.stock != null && o.api != null && o.stock < o.api;
         return `<div class="ord" id="${o.uid}">
           <span class="sla ${o.age}" title="${o.note}"></span>
           <span class="ord-art">${productArt(d, 34)}</span>
           <div class="ord-who"><b>${d.house} ${d.name}</b><span>${o.who} · ${o.box} · ${o.note}</span></div>
           <div class="ord-cost">
-            API: <b>${money(o.api)}</b><br>
-            My stock: ${o.stock != null ? `<b>${o.stock} on hand</b>` : "·"}
+            API: ${o.api != null ? `<b>${money(o.api)}</b> ${cheaper ? "" : o.stock == null ? '<span class="best-price">← cheapest</span>' : ""}` : "— manual only"}<br>
+            My stock: ${o.stock != null ? `<b>${money(o.stock)}</b> ${cheaper ? '<span class="best-price">← cheapest, save ' + money(o.api - o.stock) + "</span>" : ""}` : "—"}
           </div>
           <div class="ord-actions">
-            <button class="btn btn-gold" onclick="fulfill('${o.uid}','api')">Fulfill via API</button>
+            ${o.api != null ? `<button class="btn btn-gold" onclick="fulfill('${o.uid}','api')">Fulfill via API</button>` : ""}
             <button class="btn btn-ghost" onclick="fulfill('${o.uid}','manual')">Manual</button>
             <button class="btn btn-ghost" onclick="soldOut('${o.uid}')">Sold out</button>
             <button class="btn btn-ghost" onclick="fulfill('${o.uid}','credit')">Credit</button>
-            <button class="btn btn-quiet" onclick="fulfill('${o.uid}','hold')">Hold</button>
           </div>
         </div>`;
       }).join("");
       renderStats();
       renderBuybacks();
+      renderWithdrawals();
       renderGiveaway();
       bxListRender();
-      lowStockRender();
       dailyListRender();
+      shopListRender();
       hcRender();
       icRenderRemoved();
       renderCreators();
@@ -1657,14 +1806,14 @@
       renderTickets();
       const OPS_HEADS = {
         ship: ["Fulfillment <em>queue.</em>", 'Every "Ship it" lands here. Route each order to the API or fulfill it yourself when you can source it cheaper. Rows age green → amber → red against the shipping promise; untouched rows auto-route to the API at 24h.'],
-        buyback: ["Buybacks, <em>live.</em>", "Every accepted buyback is an order you never had to fulfill. Watch for heavy cyclers: many buybacks plus heavy gift card trading is the pattern worth a second look."],
-        boxes: ["Boxes & <em>catalog.</em>", "Every box on the site, the item catalog, the daily program, the buyback dials, and the homepage hero. This tab is the store."],
-        stats: ["The <em>numbers.</em>", "Revenue, cost, and profit by day, week, and month. Buyback credit is a liability until it respends or transfers, so it is shown as its own line, not as cost."],
+        buyback: ["Buybacks, <em>live.</em>", "Every accepted buyback is an order you never had to fulfill. Watch for heavy cyclers: many buybacks across several boxes is the pattern worth a second look."],
+        withdraw: ["Review · <em>KYC.</em>", "Held items wait here for your click: duplicate identities, high-value first days, 3+ shipping addresses, and KYC mismatches. Everything else runs on its own."],
+        boxes: ["Boxes & <em>catalog.</em>", "Every box on the site, the item catalog, the daily program, the shop shelves, the buyback dials, and the homepage hero. This tab is the store."],
+        stats: ["The <em>numbers.</em>", "Revenue, cost, and profit by day, week, and month. Buyback credit is a liability until it respends, so it is shown as its own line, not as cost."],
         giveaway: ["The <em>giveaway.</em>", "This week's prize, the entry ledger, and the queue of what's next. Winners drawn by random.org, verified before anything ships."],
-        creators: ["Top <em>codes.</em>", "Creator codes ranked by what they bring in. Earnings accrue on referrals' cash opens and credit to each creator's balance automatically."],
+        creators: ["Creator <em>lane.</em>", "Codes, earnings and tiers. Commission credits automatically as Covet credit; you can suspend a creator or code."],
         users: ["<em>Users.</em>", "Every account: history, balance edits, refunds, flags, and bans. Support ticket names link straight here."],
         support: ["<em>Support.</em>", "Tickets and live chat. A real human, usually within a few hours, and every customer name links to their profile."],
-        settings: ["Master <em>switches.</em>", "The whole site's on/off panel: maintenance, deposits, gift cards, the giveaway, and the daily program. Flip it here, the storefront obeys."],
       };
       document.querySelectorAll("#opsTabs .ops-tab").forEach((t) => {
         t.addEventListener("click", () => {

@@ -4,11 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Profile · Covet</title>
-  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=2" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=310" />
+  <link rel="stylesheet" href="css/style.css?v=285" />
   <style>
     .profile-head { display: flex; align-items: center; gap: 22px; padding: 72px 0 40px; }
     .avatar {
@@ -142,7 +143,7 @@
         <div class="avatar" id="pAvatar">R</div>
         <div>
           <span class="eyebrow">My profile</span>
-          <h1 id="pHello">Hi, Ava ♥</h1>
+          <h1 id="pHello">Hi, Riley ♥</h1>
           <p class="micro" id="pSince" style="margin-top:6px">With Covet since August 2026</p>
         </div>
         <div class="head-actions">
@@ -155,12 +156,12 @@
         <div class="stat-card">
           <span class="ec-label">Balance</span>
           <b class="sc-val" id="pBal">·</b>
-          <p class="micro">Spendable on any box, or trade it for gift cards.</p>
+          <p class="micro">Spendable on any box.</p>
         </div>
         <div class="stat-card">
           <span class="ec-label">Giveaway entries</span>
           <b class="sc-val" id="pEnt">·</b>
-          <p class="micro">Every entry counts in this week's draw.</p>
+          <p class="micro">Every entry counts in <span data-gw="thisL">this week's</span> draw.</p>
           <button class="btn btn-ghost" onclick="openGiveawayModal()">Today's free entry</button>
         </div>
         <div class="stat-card" id="streakCard">
@@ -178,16 +179,15 @@
         </div>
         <aside>
           <div class="code-panel">
-            <span class="float-heart" style="right:36%;top:12%;font-size:13px">✨</span>
             <span class="float-heart" style="right:4%;bottom:14%;font-size:15px;animation-delay:-2.4s">♥</span>
             <div>
               <div class="cp-label">My code · share it anywhere</div>
-              <div class="cp-code" id="pCode">AVA5</div>
+              <div class="cp-code" id="pCode">RILEY5</div>
               <p class="cp-sub">Friends get $5 off their first box. You get credit on every box they ever open.</p>
             </div>
             <div style="display:flex;flex-direction:column;gap:10px;align-items:stretch">
               <button class="btn gp-btn" onclick="copyCode()">Copy my code</button>
-              <a class="btn" id="mkBtn" href="mediakit.html" style="background:rgba(255,255,255,0.16);color:#fff;border-color:rgba(255,255,255,0.35)">Creator media kit ↗</a>
+              <a class="btn" id="mkBtn" href="mediakit.html" style="display:none;background:rgba(255,255,255,0.16);color:#fff;border-color:rgba(255,255,255,0.35)">Creator media kit ↗</a>
             </div>
           </div>
 
@@ -220,11 +220,11 @@
 
   <footer class="site-foot"></footer>
 
-  <script src="js/data.js?v=310"></script>
-  <script src="js/art.js?v=310"></script>
-  <script src="js/app.js?v=310"></script>
+  <script src="js/data.js?v=290"></script>
+  <script src="js/art.js?v=281"></script>
+  <script src="js/app.js?v=293"></script>
   <script>
-    function myName() { return localStorage.getItem("covet_name") || "Ava"; }
+    function myName() { return localStorage.getItem("covet_name") || "Riley"; }
     function myCode() {
       return localStorage.getItem("covet_code") || (myName().toUpperCase().replace(/[^A-Z]/g, "").slice(0, 10) + "5"); /* the 5 = her $5 off */
     }
@@ -243,15 +243,16 @@
       const p = getPending();
       if (p <= 0) return;
       const ytd = parseFloat(localStorage.getItem("covet_creator_ytd") || "0");
+      if (ytd + p >= 600 && !hasW9()) { openW9Modal(claimEarnings); return; }
       localStorage.setItem("covet_creator_ytd", String(ytd + p));
       localStorage.setItem("covet_pending", "0");
       setWallet(getWallet() + p);
       renderEarnings();
       confettiBurst();
       openModal(`
-        <span class="eyebrow">✨ Claimed</span>
+        <span class="eyebrow">Claimed</span>
         <h2>${money(p)} is yours</h2>
-        <p class="modal-sub">Your creator earnings just landed in your balance, now ${money(getWallet())}. Spend it on any box, or trade it for gift cards. More accrues as your referrals keep opening.</p>
+        <p class="modal-sub">Your creator earnings just landed in your balance, now ${money(getWallet())}. Spend it on any box. More accrues as your referrals keep opening.</p>
         <div class="modal-actions">
           <a class="btn btn-gold" href="cases.html">Put it to work</a>
           <button class="btn btn-quiet" onclick="closeModal()">Done</button>
@@ -263,6 +264,8 @@
       document.getElementById("pAvatar").textContent = name[0].toUpperCase();
       document.getElementById("pHello").textContent = `Hi, ${name} ♥`;
       document.getElementById("pCode").textContent = myCode();
+      /* media kit unlocks once she's actually claimed a creator code */
+      if (localStorage.getItem("covet_code")) document.getElementById("mkBtn").style.display = "inline-flex";
       renderBestPull();
       renderEarnings();
       renderRecent();
@@ -305,7 +308,7 @@
         <div class="bc-glow"></div>
         <div class="bc-art">${productArt(best.drop, 64)}</div>
         <div>
-          <span class="bc-chip">✨ My best pull · ${best.drop.odds}% odds</span>
+          <span class="bc-chip">My best pull · ${best.drop.odds}% odds</span>
           <h3>${best.drop.house} ${best.drop.name}</h3>
           <div class="bc-meta">Market value ${money(best.drop.value)} · from ${best.boxName}</div>
         </div>
@@ -315,7 +318,7 @@
       const code = myCode();
       if (navigator.clipboard) navigator.clipboard.writeText(code);
       openModal(`
-        <span class="eyebrow">✨ Copied</span>
+        <span class="eyebrow">Copied</span>
         <h2>${code}</h2>
         <p class="modal-sub">Drop it in your bio, your captions, the group chat. Friends get $5 off their first box, and you earn credit on every box they ever open.</p>
         <div class="modal-actions"><button class="btn btn-gold" onclick="closeModal()">Done</button></div>
@@ -362,7 +365,7 @@
       openModal(`
         <span class="eyebrow">Delete account</span>
         <h2>All of you, gone</h2>
-        <p class="modal-sub">Your balance, shelf, wishlists, and entries are permanently deleted, and your data removal completes within 30 days. Transfer or spend your balance first; it can't follow you.</p>
+        <p class="modal-sub">Your balance, shelf, wishlists, and entries are permanently deleted, and your data removal completes within 30 days. Spend your balance first; it can't follow you.</p>
         <div class="modal-actions">
           <button class="btn btn-quiet" onclick="localStorage.clear();location.href='index.html'">Delete forever</button>
           <button class="btn btn-gold" onclick="closeModal()">Keep my account ♥</button>
@@ -393,7 +396,7 @@
         b.href = "cases.html";
       } else if (!canClaimDailyBox()) {
         const b = document.getElementById("pStreakBtn");
-        b.textContent = "Opened today ✨";
+        b.textContent = "Opened today";
         b.classList.remove("btn-gold"); b.classList.add("btn-quiet");
       }
     });

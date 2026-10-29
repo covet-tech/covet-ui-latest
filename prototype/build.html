@@ -4,11 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Wishlist · Covet</title>
-  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=2" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=310" />
+  <link rel="stylesheet" href="css/style.css?v=285" />
   <style>
     .search-row { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
     .search-input {
@@ -259,9 +260,9 @@
 
   <footer class="site-foot"></footer>
 
-  <script src="js/data.js?v=310"></script>
-  <script src="js/art.js?v=310"></script>
-  <script src="js/app.js?v=310"></script>
+  <script src="js/data.js?v=290"></script>
+  <script src="js/art.js?v=281"></script>
+  <script src="js/app.js?v=293"></script>
   <script>
     function togglePick(id) {
       const state = toggleWishlist(id);
@@ -277,7 +278,7 @@
       renderGrid();
     }
     function feelFor(pct) {
-      if (pct >= 60) return "Basically yours ✨";
+      if (pct >= 60) return "Basically yours";
       if (pct >= 35) return "You really want this";
       if (pct >= 15) return "In the running";
       return "A long shot";
@@ -468,7 +469,8 @@
       const pool = allDrops().filter((d) => b.ids.includes(d.id));
       const blended = pool.reduce((s, d) => s + ((b.pcts[d.id] || 1) / 100) * d.value, 0);
       const costEV = pool.reduce((s, d) => s + ((b.pcts[d.id] || 1) / 100) * costOf(d), 0);
-      return Math.max(10, Math.ceil(blended * 0.9), Math.ceil(costEV * 1.25 + 6));
+      const wp = getWishPricing(); /* same settings as wishlistBoxFrom in data.js */
+      return Math.max(10, Math.ceil(blended * wp.valuePct / 100), Math.ceil(costEV * (1 + wp.profitPct / 100) + wp.shipping));
     }
     function refreshMyBoxesBtn() {
       const n = getSavedBoxes().length;

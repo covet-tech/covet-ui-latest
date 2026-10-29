@@ -4,11 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Creators · Covet</title>
-  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=2" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=310" />
+  <link rel="stylesheet" href="css/style.css?v=285" />
   <style>
     .code-card {
       position: absolute; left: 50%; top: 50%;
@@ -80,7 +81,6 @@
           </div>
         </div>
         <div class="gp-prizes" aria-hidden="true">
-          <span class="hs-spark s1" style="left:4%;bottom:10%">✨</span>
           <span class="hs-spark s2" style="right:6%;top:6%">♥</span>
           <div class="code-card">
             <div class="cc-label">Your code</div>
@@ -107,7 +107,7 @@
           <input id="claimHandle" type="text" placeholder="mia" maxlength="12" />
         </div>
         <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="claimCode()">Claim my code</button>
-        <p class="micro" style="margin-top:14px;text-align:center">Codes apply at sign up, for new accounts only. Credit is spendable on any box or tradable for gift cards. Earnings accrue on your referrals' cash purchases for the life of their account, never on credit spend or refunded amounts.</p>
+        <p class="micro" style="margin-top:14px;text-align:center">Codes apply at sign up, for new accounts only. Credit is spendable on any box. Earnings accrue on your referrals' cash purchases for the life of their account, never on credit spend or refunded amounts.</p>
       </div>
     </section>
 
@@ -162,7 +162,7 @@
           <ul>
             <li>1% of every box, up from 0.5%</li>
             <li>A free box on your shelf at 50 referrals, and every 50 after</li>
-            <li>Trade earnings for gift cards, no purchase needed</li>
+            <li>Priority support and early looks at new boxes</li>
           </ul>
         </div>
         <div class="tier-card">
@@ -171,7 +171,6 @@
           <div class="tc-req">Your cut doubles again to 2%</div>
           <ul>
             <li>2% of every box, up from 1%</li>
-            <li>Your own collab box, and 3% of every single one opened</li>
             <li>Your code gifts a giveaway entry with every first box</li>
           </ul>
         </div>
@@ -182,9 +181,9 @@
 
   <footer class="site-foot"></footer>
 
-  <script src="js/data.js?v=310"></script>
-  <script src="js/art.js?v=310"></script>
-  <script src="js/app.js?v=310"></script>
+  <script src="js/data.js?v=290"></script>
+  <script src="js/art.js?v=281"></script>
+  <script src="js/app.js?v=293"></script>
   <script>
     function claimCode() {
       const raw = document.getElementById("claimHandle").value.trim() || "";
@@ -203,7 +202,7 @@
       localStorage.setItem("covet_code", code);
       confettiBurst();
       openModal(`
-        <span class="eyebrow">✨ It's live</span>
+        <span class="eyebrow">It's live</span>
         <h2>${code}</h2>
         <p class="modal-sub">Your code works right now. Drop it in your bio and captions: friends get $5 off their first box, and you earn credit on every box they ever open. Track it all on your profile.</p>
         <div class="modal-actions">
